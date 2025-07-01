@@ -1,70 +1,71 @@
 <?php
-    $income = 0;
-    include "connect.php";
-    $sql = "SELECT SUM(book.price*order_details.quantity) as income FROM book, order_books, order_details
-    WHERE order_books.id_order=order_details.id_order AND order_details.id_book = book.id_book AND order_books.status = 'Complete'";
-    $result = mysqli_query($conn, $sql);
-    if ($result) {
-        $num_rows = mysqli_num_rows($result);
-        if ($num_rows > 0) {
-            while($row = mysqli_fetch_array($result)) {
-                $income += $row['income'];
-            }
-        } else {
-            echo "No rows returned.";
+$income = 0;
+include "../config/connect.php";
+$sql = "SELECT SUM(jewelries.price*order_details.quantity) as income FROM jewelries, orders, order_details
+    WHERE orders.id=order_details.id AND order_details.jewelry_id = jewelries.id AND orders.status = 'Complete'";
+$result = mysqli_query($conn, $sql);
+if ($result) {
+    $num_rows = mysqli_num_rows($result);
+    if ($num_rows > 0) {
+        while ($row = mysqli_fetch_array($result)) {
+            $income += $row['income'];
         }
     } else {
-        echo "Query failed: " . mysqli_error($conn);
+        echo "No rows returned.";
     }
-    $conn->close();
+} else {
+    echo "Query failed: " . mysqli_error($conn);
+}
+$conn->close();
 ?>
 
 <?php
-    $count_customer = 0;
-    include "connect.php";
-    $sql = "SELECT COUNT(id_customer) as count_customer FROM customer";
-    $result = mysqli_query($conn, $sql);
-    if ($result) {
-        $num_rows = mysqli_num_rows($result);
-        if ($num_rows > 0) {
-            while($row = mysqli_fetch_array($result)) {
-                $count_customer += $row['count_customer'];
-            }
-        } else {
-            echo "No rows returned.";
+$count_customer = 0;
+include "../config/connect.php";
+$sql = "SELECT COUNT(id) as count_customer FROM users";
+$result = mysqli_query($conn, $sql);
+if ($result) {
+    $num_rows = mysqli_num_rows($result);
+    if ($num_rows > 0) {
+        while ($row = mysqli_fetch_array($result)) {
+            $count_customer += $row['count_customer'];
         }
     } else {
-        echo "Query failed: " . mysqli_error($conn);
+        echo "No rows returned.";
     }
-    $conn->close();
+} else {
+    echo "Query failed: " . mysqli_error($conn);
+}
+$conn->close();
 ?>
 
 <?php
-    $count_order = 0;
-    include "connect.php";
-    $sql = "SELECT COUNT(id_order) as count_order FROM order_books";
-    $result = mysqli_query($conn, $sql);
-    if ($result) {
-        $num_rows = mysqli_num_rows($result);
-        if ($num_rows > 0) {
-            while($row = mysqli_fetch_array($result)) {
-                $count_order += $row['count_order'];
-            }
-        } else {
-            echo "No rows returned.";
+$count_order = 0;
+include "../config/connect.php";
+$sql = "SELECT COUNT(id) as count_order FROM orders";
+$result = mysqli_query($conn, $sql);
+if ($result) {
+    $num_rows = mysqli_num_rows($result);
+    if ($num_rows > 0) {
+        while ($row = mysqli_fetch_array($result)) {
+            $count_order += $row['count_order'];
         }
     } else {
-        echo "Query failed: " . mysqli_error($conn);
+        echo "No rows returned.";
     }
-    $conn->close();
+} else {
+    echo "Query failed: " . mysqli_error($conn);
+}
+$conn->close();
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin</title>
+    <title>Jewelry Admin Dashboard</title>
     <link rel="stylesheet" href="../css/styleadmin.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -72,19 +73,20 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 </head>
+
 <body>
     <div class="sidebar">
         <ul class="menu">
             <li class="active">
-                <a href="./trangchu.php">
+                <a href="./index.php">
                     <i class="fas fa-tachometer-alt"></i>
                     <span>Dashboard</span>
                 </a>
             </li>
             <li>
-                <a href="./quanlysach.php">
-                    <i class="fa-solid fa-book"></i>
-                    <span>Books</span>
+                <a href="./jewelry_management.php">
+                    <i class="fa-solid fa-gem"></i>
+                    <span>Jewelry</span>
                 </a>
             </li>
             <li>
@@ -99,19 +101,7 @@
                     <span>Orders</span>
                 </a>
             </li>
-            <li>
-                <a href="./quanlytacgia.php">
-                    <i class="fa-solid fa-feather"></i>
-                    <span>Author</span>
-                </a>
-            </li>
-            <li>
-                <a href="./quanlytheloai.php">
-                    <i class="fa-solid fa-rectangle-list"></i>
-                    <span>Category</span>
-                </a>
-            </li>
-            <li  class="logout">
+            <li class="logout">
                 <a href="../user/login-signup.php">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Logout</span>
@@ -150,7 +140,7 @@
                     <div class="card-header">
                         <div class="amount">
                             <span class="title">
-                                Bill
+                                Orders
                             </span>
                             <span class="amount-value">
                                 <?php echo $count_order ?>
@@ -172,7 +162,7 @@
                         <i class="fas fa-users icon dark-green"></i>
                     </div>
                 </div>
-            </div> 
+            </div>
         </div>
         <div class="table-wrapper income-statistical">
             <h3 class="main-title">
@@ -194,11 +184,11 @@
         </div>
         <div class="table-wrapper books-statistical">
             <h3 class="main-title">
-                Number of category books sold
+                Number of jewelry categories sold
             </h3>
             <div class="combobox-select-year">
-                <label for="selected-year-numBook">Year</label>
-                <select id="selected-year-numBook">
+                <label for="selected-year-numJewelry">Year</label>
+                <select id="selected-year-numJewelry">
                     <option value="2021">2021</option>
                     <option value="2022">2022</option>
                     <option value="2023">2023</option>
@@ -206,8 +196,8 @@
                 </select>
             </div>
             <div class="chart-container chart-container-pie">
-                <canvas id="pieChart-categoryBookSold-month"></canvas>
-                <canvas id="barChart-categoryBookSold-month"></canvas>
+                <canvas id="pieChart-categoryJewelrySold-month"></canvas>
+                <canvas id="barChart-categoryJewelrySold-month"></canvas>
             </div>
         </div>
 
@@ -218,7 +208,9 @@
                 $.ajax({
                     url: 'chart.php',
                     type: 'POST',
-                    data: { selectedValue: selectedValue },
+                    data: {
+                        selectedValue: selectedValue
+                    },
                     success: function(response) {
                         let data = JSON.parse(response);
                         var oldChart = Chart.getChart("lineChart-income-month");
@@ -226,7 +218,7 @@
                             oldChart.destroy();
                         }
                         var ctx = document.getElementById('lineChart-income-month').getContext('2d');
-                        
+
                         // Tạo mảng cho nhãn và giá trị từ dữ liệu JSON
                         var labels = data.map(function(item) {
                             return item.label;
@@ -257,14 +249,14 @@
             });
         </script>
         <?php
-            include "connect.php";
-            $sql = "SELECT MONTH(order_books.order_date) AS month, SUM(order_details.quantity * book.price) AS total_income FROM order_books JOIN order_details ON order_books.id_order = order_details.id_order JOIN book ON order_details.id_book = book.id_book WHERE YEAR(order_books.order_date) = 2023 AND order_books.status = 'Complete' GROUP BY MONTH(order_books.order_date)";
-            $result = $conn->query($sql);
-            $data = array();
-            while ($row = $result->fetch_assoc()) {
-                $data[] = array('label' => date("F", mktime(0, 0, 0, $row['month'], 1)), 'value' => $row['total_income']);
-            }
-            $json_data = json_encode($data);
+        include "../config/connect.php";
+        $sql = "SELECT MONTH(orders.order_date) AS month, SUM(order_details.quantity * jewelries.price) AS total_income FROM orders JOIN order_details ON orders.id = order_details.id JOIN jewelries ON order_details.jewelry_id = jewelries.id WHERE YEAR(orders.order_date) = 2023 AND orders.status = 'Complete' GROUP BY MONTH(orders.order_date)";
+        $result = $conn->query($sql);
+        $data = array();
+        while ($row = $result->fetch_assoc()) {
+            $data[] = array('label' => date("F", mktime(0, 0, 0, $row['month'], 1)), 'value' => $row['total_income']);
+        }
+        $json_data = json_encode($data);
         ?>
         <script>
             var jsonData = <?php echo $json_data; ?>;
@@ -273,7 +265,7 @@
                 oldChart.destroy();
             }
             var ctx = document.getElementById('lineChart-income-month').getContext('2d');
-            
+
             var labels = jsonData.map(function(item) {
                 return item.label;
             });
@@ -311,14 +303,14 @@
         </script>
 
         <?php
-            include "connect.php";
-            $sql = "SELECT YEAR(order_books.order_date) AS year, SUM(order_details.quantity * book.price) AS total_income FROM order_books JOIN order_details ON order_books.id_order = order_details.id_order JOIN book ON order_details.id_book = book.id_book WHERE order_books.status = 'Complete' GROUP BY YEAR(order_books.order_date)";
-            $result = $conn->query($sql);
-            $data = array();
-            while ($row = $result->fetch_assoc()) {
-                $data[] = array('label' => $row['year'], 'value' => $row['total_income']);
-            }
-            $json_data = json_encode($data);
+        include "../config/connect.php";
+        $sql = "SELECT YEAR(orders.order_date) AS year, SUM(order_details.quantity * jewelries.price) AS total_income FROM orders JOIN order_details ON orders.id = order_details.id JOIN jewelries ON order_details.jewelry_id = jewelries.id WHERE orders.status = 'Complete' GROUP BY YEAR(orders.order_date)";
+        $result = $conn->query($sql);
+        $data = array();
+        while ($row = $result->fetch_assoc()) {
+            $data[] = array('label' => $row['year'], 'value' => $row['total_income']);
+        }
+        $json_data = json_encode($data);
         ?>
         <script>
             var jsonData = <?php echo $json_data; ?>;
@@ -327,7 +319,7 @@
                 oldChart.destroy();
             }
             var ctx = document.getElementById('lineChart-income-year').getContext('2d');
-            
+
             var labels = jsonData.map(function(item) {
                 return item.label;
             });
@@ -346,7 +338,7 @@
                         backgroundColor: [
                             'rgba(255, 99, 132, 0.8)',
                             'rgba(54, 162, 235, 0.8)',
-                            'rgba(255, 206, 86, 0.8)', 
+                            'rgba(255, 206, 86, 0.8)',
                             'rgba(255, 100, 86, 0.8)',
                             'rgba(200, 150, 86, 0.8)',
                             'rgba(255, 206, 150, 0.8)',
@@ -359,24 +351,23 @@
             });
         </script>
         <?php
-            include "connect.php";
-            $sql = "SELECT category.name_category as category, SUM(order_details.quantity) AS total_book FROM order_books JOIN order_details ON order_books.id_order = order_details.id_order JOIN book ON order_details.id_book = book.id_book
-            JOIN category ON book.id_category = category.id_category WHERE YEAR(order_books.order_date) = 2023 AND order_books.status = 'Complete' GROUP BY category.name_category";
-            $result = $conn->query($sql);
-            $data = array();
-            while ($row = $result->fetch_assoc()) {
-                $data[] = array('label' => $row['category'], 'value' => $row['total_book']);
-            }
-            $json_data = json_encode($data);
+        include "../config/connect.php";
+        $sql = "SELECT jewelries.category as category, SUM(order_details.quantity) AS total_jewelry FROM orders JOIN order_details ON orders.id = order_details.id JOIN jewelries ON order_details.jewelry_id = jewelries.id WHERE YEAR(orders.order_date) = 2023 AND orders.status = 'Complete' GROUP BY jewelries.category";
+        $result = $conn->query($sql);
+        $data = array();
+        while ($row = $result->fetch_assoc()) {
+            $data[] = array('label' => $row['category'], 'value' => $row['total_jewelry']);
+        }
+        $json_data = json_encode($data);
         ?>
         <script>
             var jsonData = <?php echo $json_data; ?>;
-            var oldChart = Chart.getChart("barChart-categoryBookSold-month");
+            var oldChart = Chart.getChart("barChart-categoryJewelrySold-month");
             if (oldChart) {
                 oldChart.destroy();
             }
-            var ctx = document.getElementById('barChart-categoryBookSold-month').getContext('2d');
-            
+            var ctx = document.getElementById('barChart-categoryJewelrySold-month').getContext('2d');
+
             var labels = jsonData.map(function(item) {
                 return item.label;
             });
@@ -389,12 +380,12 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Quantity Category Book Sold',
+                        label: 'Quantity Category Jewelry Sold',
                         data: values,
                         backgroundColor: [
                             'rgba(255, 99, 132, 0.8)',
                             'rgba(54, 162, 235, 0.8)',
-                            'rgba(255, 206, 86, 0.8)', 
+                            'rgba(255, 206, 86, 0.8)',
                             'rgba(255, 100, 86, 0.8)',
                             'rgba(200, 150, 86, 0.8)',
                             'rgba(255, 206, 150, 0.8)',
@@ -409,12 +400,12 @@
 
         <script>
             var jsonData = <?php echo $json_data; ?>;
-            var oldChart = Chart.getChart("pieChart-categoryBookSold-month");
+            var oldChart = Chart.getChart("pieChart-categoryJewelrySold-month");
             if (oldChart) {
                 oldChart.destroy();
             }
-            var ctx = document.getElementById('pieChart-categoryBookSold-month').getContext('2d');
-            
+            var ctx = document.getElementById('pieChart-categoryJewelrySold-month').getContext('2d');
+
             var labels = jsonData.map(function(item) {
                 return item.label;
             });
@@ -428,7 +419,7 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Quantity Category Books Sold',
+                        label: 'Quantity Category Jewelry Sold',
                         data: values,
                         backgroundColor: [
                             'rgba(255, 99, 132, 0.8)',
@@ -447,27 +438,29 @@
         </script>
 
         <script>
-            var comboBoxNumBook = document.getElementById('selected-year-numBook');
-            comboBoxNumBook.addEventListener('change', function() {
-                var selectedValueNumBook = comboBoxNumBook.value;
+            var comboBoxNumJewelry = document.getElementById('selected-year-numJewelry');
+            comboBoxNumJewelry.addEventListener('change', function() {
+                var selectedValueNumJewelry = comboBoxNumJewelry.value;
                 $.ajax({
                     url: 'chart.php',
                     type: 'POST',
-                    data: { selectedValueNumBook: selectedValueNumBook },
+                    data: {
+                        selectedValueNumJewelry: selectedValueNumJewelry
+                    },
                     success: function(response) {
                         // Hủy biểu đồ cũ trước khi tạo biểu đồ mới
-                        var oldChart = Chart.getChart("barChart-categoryBookSold-month");
+                        var oldChart = Chart.getChart("barChart-categoryJewelrySold-month");
                         if (oldChart) {
                             oldChart.destroy();
                         }
                         var data = JSON.parse(response);
-                        var ctx = document.getElementById('barChart-categoryBookSold-month').getContext('2d');
+                        var ctx = document.getElementById('barChart-categoryJewelrySold-month').getContext('2d');
                         var myChart = new Chart(ctx, {
                             type: 'bar',
                             data: {
                                 labels: data.map(item => item.label),
                                 datasets: [{
-                                    label: 'Quantity Category Book Sold',
+                                    label: 'Quantity Category Jewelry Sold',
                                     data: data.map(item => item.value),
                                     backgroundColor: [
                                         'rgba(255, 99, 132, 0.8)',
@@ -492,26 +485,28 @@
         </script>
 
         <script>
-            var comboBoxNumBook = document.getElementById('selected-year-numBook');
-            comboBoxNumBook.addEventListener('change', function() {
-                var selectedValueNumBook = comboBoxNumBook.value;
+            var comboBoxNumJewelry = document.getElementById('selected-year-numJewelry');
+            comboBoxNumJewelry.addEventListener('change', function() {
+                var selectedValueNumJewelry = comboBoxNumJewelry.value;
                 $.ajax({
                     url: 'chart.php',
                     type: 'POST',
-                    data: { selectedValueNumBook: selectedValueNumBook },
+                    data: {
+                        selectedValueNumJewelry: selectedValueNumJewelry
+                    },
                     success: function(response) {
-                        var oldChart = Chart.getChart("pieChart-categoryBookSold-month");
+                        var oldChart = Chart.getChart("pieChart-categoryJewelrySold-month");
                         if (oldChart) {
                             oldChart.destroy();
                         }
                         var data = JSON.parse(response);
-                        var ctx = document.getElementById('pieChart-categoryBookSold-month').getContext('2d');
+                        var ctx = document.getElementById('pieChart-categoryJewelrySold-month').getContext('2d');
                         var myChart = new Chart(ctx, {
                             type: 'pie',
                             data: {
                                 labels: data.map(item => item.label),
                                 datasets: [{
-                                    label: 'Quantity Category Book Sold',
+                                    label: 'Quantity Category Jewelry Sold',
                                     data: data.map(item => item.value),
                                     backgroundColor: [
                                         'rgba(255, 99, 132, 0.8)',
@@ -535,4 +530,5 @@
             });
         </script>
 </body>
+
 </html>
