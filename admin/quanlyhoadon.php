@@ -5,7 +5,7 @@ include "../config/connect.php";
 $page = isset($_GET["page"]) ? (int)$_GET["page"] : 1;
 $limit = 5;
 include "../config/connect.php";
-$sql = "SELECT * FROM orders";
+$sql = "SELECT * FROM orders WHERE is_deleted = 0";
 $result = mysqli_query($conn, $sql);
 $pageRow = $result->num_rows;
 $numPage = ceil($pageRow / 5);
@@ -104,7 +104,7 @@ if (isset($_GET["page"])) {
                         } else {
                             $currentData = ($page - 1) * 5;
                         }
-                        $sql = "SELECT * FROM orders LIMIT " . $currentData . ", 5";
+                        $sql = "SELECT * FROM orders WHERE is_deleted = 0 LIMIT " . $currentData . ", 5";
                         $result = mysqli_query($conn, $sql);
                         while ($row = mysqli_fetch_array($result)) {
                             $id = $row['id'];
@@ -149,10 +149,11 @@ if (isset($_GET["page"])) {
                                 <td class="order-status <?php echo $status ?>"><?php echo $status ?></td>
                                 <td class="order-notes"><?php echo $notes ?></td>
                                 <td>
-                                    <a <?php echo ($status === 'đã hủy' || $status === 'hoàn tất') ?
-                                            "href='quanlyhoadon.php?page={$page}&iddeleteorder={$id}&formdeleteorder=1&status={$status}'" :
-                                            "href='quanlyhoadon.php?page={$page}&formcantdeleteorder=1'" ?>
-                                        class="fas fa-trash icon-delete js-delete-order">
+                                    <a href="#"
+                                        class="fas fa-trash icon-delete js-delete-order"
+                                        data-order-id="<?php echo $id ?>"
+                                        data-status="<?php echo $status ?>"
+                                        onclick="handleDeleteOrder(<?php echo $id ?>, '<?php echo $status ?>')">
                                     </a>
                                     <a href="#"
                                         class="fa-regular fa-eye icon-detail js-detail-order"
@@ -248,6 +249,37 @@ if (isset($_GET["page"])) {
 
                 <div class="action-form">
                     <!-- Action buttons will be added dynamically based on status -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal template cho Delete Confirmation -->
+    <div class="modal-delete js-modal-deleteOrder" style="display: none;">
+        <div class="modal-delete-container js-modal-deleteOrder-container">
+            <div class="modal-delete-close js-modal-deleteOrder-close">
+                <i class="fa-solid fa-xmark"></i>
+            </div>
+            <div class="modal-delete-body">
+                <p>Do you want to delete this order?</p>
+                <div class="btn-delete-choose">
+                    <button type="button" class="btn-yes js-confirm-delete">Yes</button>
+                    <button type="button" class="btn-no js-cancel-delete">No</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal template cho Error Message -->
+    <div class="modal-delete js-modal-error" style="display: none;">
+        <div class="modal-delete-container js-modal-error-container">
+            <div class="modal-delete-close js-modal-error-close">
+                <i class="fa-solid fa-xmark"></i>
+            </div>
+            <div class="modal-delete-body">
+                <p>Cannot delete order with current status!</p>
+                <div class="btn-delete-choose">
+                    <button type="button" class="btn-no js-error-ok">OK</button>
                 </div>
             </div>
         </div>
@@ -384,58 +416,6 @@ if (isset($_GET["page"])) {
     }
     ?>
 
-    <?php
-    include "../config/connect.php";
-    if (isset($_GET['formcantdeleteorder'])) {
-        echo '<div id="toast-deleteOrder-error" class="toast-message"></div>';
-        echo "<script>setTimeout(function(){
-        window.location = 'quanlyhoadon.php?page=" . $_GET['page'] . "';
-    }, 2000)</script>";
-    }
-    ?>
-
-    <?php
-    include "../config/connect.php";
-    if (isset($_GET['formdeleteorder'])) {
-        echo '<div class="modal-delete js-modal-deleteOrder" style="display:flex">
-    <form class="modal-delete-container js-modal-deleteOrder-container" method="post"
-    action="quanlyhoadon.php?page=' . $page . '&iddeleteorder=' . (isset($_GET["iddeleteorder"]) ? $_GET["iddeleteorder"] : "") . '" enctype="multipart/form-data">
-        <div class="modal-delete-close js-modal-deleteOrder-close">
-            <i class="fa-solid fa-xmark"></i>
-        </div>
-        <div class="modal-delete-body">
-            <p>Do you want to delete order?</p>
-            <div class="btn-delete-choose">
-                <button type=submit name="deleteOrder" class="btn-yes js-order-btn-yes">
-                    Yes
-                </button>
-                <div class="btn-no js-order-btn-no">
-                    <a href="#">No</a>
-                </div>
-            </div>
-        </div>
-    </form>
-</div>';
-    }
-    ?>
-
-    <?php
-    include "../config/connect.php";
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        if (isset($_POST["deleteOrder"])) {
-            $sql2 = "DELETE FROM order_books WHERE id = " . $_GET['iddeleteorder'];
-            if (mysqli_query($conn, $sql2)) {
-                echo '<div id="toast-deleteOrder-success" class="toast-message"></div>';
-                echo "<script>setTimeout(function(){
-                    window.location = 'quanlyhoadon.php?page=" . $_GET['page'] . "';
-                }, 2000)</script>";
-            } else {
-                echo '<div id="toast-cancelled-error" class="toast-message"></div>';
-            }
-        }
-    }
-    ?>
-
     <div id="toast"></div>
     <script>
         function showSuccessToast(title, message, type) {
@@ -455,6 +435,56 @@ if (isset($_GET["page"])) {
 
             // Load order details via AJAX
             loadOrderDetails(orderId, status);
+        }
+
+        // Function to handle delete order
+        function handleDeleteOrder(orderId, status) {
+            // Check if order can be deleted (only Complete or Cancelled orders)
+            if (status === 'đã hủy' || status === 'hoàn tất') {
+                showDeleteConfirmModal(orderId);
+            } else {
+                showErrorModal();
+            }
+        }
+
+        // Function to show delete confirmation modal
+        function showDeleteConfirmModal(orderId) {
+            const modal = document.querySelector('.js-modal-deleteOrder');
+            modal.style.display = 'flex';
+
+            // Store order ID for later use
+            modal.dataset.orderId = orderId;
+        }
+
+        // Function to show error modal
+        function showErrorModal() {
+            const modal = document.querySelector('.js-modal-error');
+            modal.style.display = 'flex';
+        }
+
+        // Function to actually delete order
+        function deleteOrder(orderId) {
+            fetch('delete_order.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `order_id=${orderId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message and reload page
+                        alert('Order deleted successfully!');
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while deleting the order.');
+                });
         }
 
         // Function to load order details
@@ -529,6 +559,71 @@ if (isset($_GET["page"])) {
             const modal = document.querySelector('.js-modal-order-detail');
             if (modal) {
                 modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.style.display = 'none';
+                    }
+                });
+            }
+
+            // Delete modal event listeners
+            const deleteModal = document.querySelector('.js-modal-deleteOrder');
+            const deleteCloseBtn = document.querySelector('.js-modal-deleteOrder-close');
+            const confirmDeleteBtn = document.querySelector('.js-confirm-delete');
+            const cancelDeleteBtn = document.querySelector('.js-cancel-delete');
+
+            // Close delete modal
+            if (deleteCloseBtn) {
+                deleteCloseBtn.addEventListener('click', function() {
+                    deleteModal.style.display = 'none';
+                });
+            }
+
+            // Cancel delete
+            if (cancelDeleteBtn) {
+                cancelDeleteBtn.addEventListener('click', function() {
+                    deleteModal.style.display = 'none';
+                });
+            }
+
+            // Confirm delete
+            if (confirmDeleteBtn) {
+                confirmDeleteBtn.addEventListener('click', function() {
+                    const orderId = deleteModal.dataset.orderId;
+                    deleteModal.style.display = 'none';
+                    deleteOrder(orderId);
+                });
+            }
+
+            // Close delete modal when clicking outside
+            if (deleteModal) {
+                deleteModal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.style.display = 'none';
+                    }
+                });
+            }
+
+            // Error modal event listeners
+            const errorModal = document.querySelector('.js-modal-error');
+            const errorCloseBtn = document.querySelector('.js-modal-error-close');
+            const errorOkBtn = document.querySelector('.js-error-ok');
+
+            // Close error modal
+            if (errorCloseBtn) {
+                errorCloseBtn.addEventListener('click', function() {
+                    errorModal.style.display = 'none';
+                });
+            }
+
+            if (errorOkBtn) {
+                errorOkBtn.addEventListener('click', function() {
+                    errorModal.style.display = 'none';
+                });
+            }
+
+            // Close error modal when clicking outside
+            if (errorModal) {
+                errorModal.addEventListener('click', function(e) {
                     if (e.target === this) {
                         this.style.display = 'none';
                     }

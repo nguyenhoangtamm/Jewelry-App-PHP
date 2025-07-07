@@ -6,9 +6,16 @@ if (isset($_GET['id'])) {
     $status = $_GET['status'] ?? '';
 
     // Get order info
-    $sql_order = "SELECT * FROM orders WHERE id = $order_id";
+    $sql_order = "SELECT * FROM orders WHERE id = $order_id AND is_deleted = 0";
     $order_result = mysqli_query($conn, $sql_order);
     $order_row = mysqli_fetch_assoc($order_result);
+
+    // Check if order exists and not deleted
+    if (!$order_row) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Order not found or has been deleted']);
+        exit;
+    }
 
     // Get user info
     $user_id = $order_row['user_id'];
@@ -21,7 +28,7 @@ if (isset($_GET['id'])) {
             FROM order_details
             INNER JOIN jewelries ON order_details.jewelry_id = jewelries.id
             INNER JOIN categories ON jewelries.category_id = categories.id
-            WHERE order_details.order_id = $order_id";
+            WHERE order_details.order_id = $order_id AND order_details.is_deleted = 0";
     $result = mysqli_query($conn, $sql);
 
     $items = [];
