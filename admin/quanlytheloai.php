@@ -1,6 +1,6 @@
 <?php
 include "../config/connect.php";
-$sql = "SELECT * FROM categories";
+$sql = "SELECT * FROM categories WHERE is_deleted = 0";
 $result = mysqli_query($conn, $sql);
 $pageRow = $result->num_rows;
 $numPage = ceil($pageRow / 5);
@@ -93,6 +93,7 @@ if (isset($_GET["page"])) {
                         <tr>
                             <th>ID</th>
                             <th>Name</th>
+                            <th>Description</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -104,18 +105,30 @@ if (isset($_GET["page"])) {
                         } else {
                             $currentData = ($page - 1) * 5;
                         }
-                        $sql = "SELECT * FROM categories LIMIT " . $currentData . ", 5";
+                        $sql = "SELECT * FROM categories WHERE is_deleted = 0 LIMIT " . $currentData . ", 5";
                         $result = mysqli_query($conn, $sql);
                         while ($row = mysqli_fetch_array($result)) {
                             $id = $row['id'];
                             $name = $row['name'];
+                            $description = $row['description'];
                         ?>
                             <tr>
                                 <td class="category-id"><?php echo $row['id'] ?></td>
                                 <td class="category-name"><?php echo $row['name'] ?></td>
+                                <td class="category-description"><?php echo htmlspecialchars($row['description']) ?></td>
                                 <td>
-                                    <a href="quanlytheloai.php?page=<?php echo $page . "&idchangecategory=" . $row['id'] . "&formchangecategory=1" ?>" class="fa-solid fa-pen icon-change js-changeCategory"></a>
-                                    <a href="quanlytheloai.php?page=<?php echo $page . "&iddelcategory=" . $row['id'] . "&formdelcategory=1" ?>" class="fas fa-trash icon-delete js-delete-category"></a>
+                                    <a href="#"
+                                        class="fa-solid fa-pen icon-change js-changeCategory"
+                                        data-category-id="<?php echo $row['id'] ?>"
+                                        data-category-name="<?php echo htmlspecialchars($row['name']) ?>"
+                                        data-category-description="<?php echo htmlspecialchars($row['description']) ?>"
+                                        onclick="showEditCategoryModal(<?php echo $row['id'] ?>, '<?php echo htmlspecialchars($row['name']) ?>', '<?php echo htmlspecialchars($row['description']) ?>')">
+                                    </a>
+                                    <a href="#"
+                                        class="fas fa-trash icon-delete js-delete-category"
+                                        data-category-id="<?php echo $row['id'] ?>"
+                                        onclick="handleDeleteCategory(<?php echo $row['id'] ?>)">
+                                    </a>
                                 </td>
                             </tr>
                         <?php } ?>
@@ -134,6 +147,8 @@ if (isset($_GET["page"])) {
         </div>
     </div>
     </div>
+
+    <!-- Modal Add Category -->
     <div class="modal js-modal-addCategory">
         <form class="modal-container modal-container-category js-modal-addCategory-container" method="post" action="quanlytheloai.php" enctype="multipart/form-data">
             <div class="modal-close js-modal-addCategory-close">
@@ -153,6 +168,13 @@ if (isset($_GET["page"])) {
                         <span class="name-addCategory-error check-error"></span>
                     </label>
                 </div>
+                <div class="modal-col">
+                    <label for="category-description" class="modal-label">
+                        Description
+                        <textarea id="category-description" name="addCategory-description" class="js-addCategory-description modal-input" placeholder="Description..." rows="3"></textarea>
+                        <span class="description-addCategory-error check-error"></span>
+                    </label>
+                </div>
                 <div class="action-form">
                     <div class="cancel-book js-cancel-category">
                         Cancel
@@ -164,13 +186,69 @@ if (isset($_GET["page"])) {
             </div>
         </form>
     </div>
+
+    <!-- Modal Edit Category -->
+    <div class="modal js-modal-editCategory" style="display: none;">
+        <div class="modal-container modal-container-category js-modal-editCategory-container">
+            <div class="modal-close js-modal-editCategory-close">
+                <i class="fa-solid fa-xmark"></i>
+            </div>
+
+            <header class="modal-header modal-header-books">
+                <i class="modal-heading-icon fa-solid fa-tags"></i>
+                Edit Category
+            </header>
+
+            <div class="modal-content modal-content-category">
+                <div class="modal-col">
+                    <label for="edit-category-name" class="modal-label">
+                        Name
+                        <input id="edit-category-name" name="editCategory-name" type="text" class="js-editCategory-name modal-input" placeholder="Name..." required>
+                        <span class="name-editCategory-error check-error"></span>
+                    </label>
+                </div>
+                <div class="modal-col">
+                    <label for="edit-category-description" class="modal-label">
+                        Description
+                        <textarea id="edit-category-description" name="editCategory-description" class="js-editCategory-description modal-input" placeholder="Description..." rows="3"></textarea>
+                        <span class="description-editCategory-error check-error"></span>
+                    </label>
+                </div>
+                <div class="action-form">
+                    <button type="button" class="cancel-book js-cancel-edit-category">
+                        Cancel
+                    </button>
+                    <button type="button" class="submit-book js-save-category">
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Delete Confirmation -->
+    <div class="modal-delete js-modal-deleteCategory" style="display: none;">
+        <div class="modal-delete-container js-modal-deleteCategory-container">
+            <div class="modal-delete-close js-modal-deleteCategory-close">
+                <i class="fa-solid fa-xmark"></i>
+            </div>
+            <div class="modal-delete-body">
+                <p>Do you want to delete this category?</p>
+                <div class="btn-delete-choose">
+                    <button type="button" class="btn-yes js-confirm-delete-category">Yes</button>
+                    <button type="button" class="btn-no js-cancel-delete-category">No</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <?php
     include "../config/connect.php";
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST["addCategory"])) {
             $nameCategory = $_POST["addCategory-name"];
+            $descriptionCategory = $_POST["addCategory-description"];
             $isDuplicate = false;
-            $sql2 = "SELECT * FROM categories";
+            $sql2 = "SELECT * FROM categories WHERE is_deleted = 0";
             $names = mysqli_query($conn, $sql2);
             while ($category = mysqli_fetch_array($names)) {
                 if ($category["name"] == $nameCategory) {
@@ -180,7 +258,7 @@ if (isset($_GET["page"])) {
                 }
             }
             if (!$isDuplicate) {
-                $sql1 = "INSERT INTO category (name) VALUE('$nameCategory')";
+                $sql1 = "INSERT INTO categories (name, description) VALUES('$nameCategory', '$descriptionCategory')";
                 if (mysqli_query($conn, $sql1)) {
                     echo '<div id="toast-addCategory-success" class="toast-message"></div>';
                 } else {
@@ -191,129 +269,157 @@ if (isset($_GET["page"])) {
     }
     ?>
 
-    <?php
-    include "../config/connect.php";
-    if (isset($_GET['idchangecategory'])) {
-        $idchange = $_GET['idchangecategory'];
-        $sql4 = "SELECT * FROM categories WHERE id = " . $idchange;
-        $query = mysqli_query($conn, $sql4);
-        if ($query) {
-            $row = mysqli_fetch_array($query);
-        }
-    }
-    ?>
-
-    <?php
-    include "../config/connect.php";
-    if (isset($_GET['formchangecategory'])) {
-        echo '<div class="modal js-modal-category modal-change-category" style="display:flex;">
-        <form action="quanlytheloai.php?page=' . $page . '&idchangecategory=' . (isset($_GET["idchangecategory"]) ? $_GET["idchangecategory"] : "") . '" method="post" class="modal-container js-modalCategory-container modal-container-category" enctype="multipart/form-data">
-            <div class="modal-close js-modalCategory-close">
-                <i class="fa-solid fa-xmark"></i>
-            </div>
-
-            <header class="modal-header">
-                <i class="modal-heading-icon fa-solid fa-tags"></i>
-                Change Category Information
-            </header>
-
-            <div class="modal-content  modal-content-category">
-                <div class="modal-col">
-                    <label for="category-name" class="modal-label" style="display: none;">
-                        ID
-                        <input value="' . $row["id"] . '" name="changeCategory-id" id="category-id" type="text" class="js-category-id modal-input modal-input-category" placeholder="ID..." required>
-                    </label>
-                    <label for="category-name" class="modal-label">
-                        Name
-                        <input value="' . $row["name"] . '" name="changeCategory-name" id="category-name" type="text" class="js-category-name modal-input modal-input-category" placeholder="Name..." required>
-                        <span class="name-changeCategory-error check-error"></span>
-                    </label>
-                <div class="action-form">
-                    <div class="cancel-book js-cancel-category">
-                        Cancel
-                    </div>
-                    <button name="changeCategory" class="submit-book js-change-category" type="submit" onclick="checkChangeCategory()">
-                        Save
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>';
-    }
-    ?>
-
-    <?php
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        if (isset($_POST["changeCategory"])) {
-            $nameCategory = $_POST["changeCategory-name"];
-            $idCategory = $_POST["changeCategory-id"];
-            $isDuplicate = false;
-            if ($_GET["idchangecategory"]) {
-                $sql2 = "SELECT * FROM categories";
-                $names = mysqli_query($conn, $sql2);
-                while ($category = mysqli_fetch_array($names)) {
-                    if ($category["name"] == $nameCategory && $category["id"] != $idCategory) {
-                        echo '<div id="toast-changeNameCategory-error" class="toast-message"></div>';
-                        $isDuplicate = true;
-                        break;
-                    }
-                }
-                if (!$isDuplicate) {
-                    $sql1 = "UPDATE categories SET name = '$nameCategory' WHERE id = " . $_GET["idchangecategory"];
-                    if (mysqli_query($conn, $sql1)) {
-                        echo '<div id="toast-changeCategory-success" class="toast-message"></div>';
-                        echo "<script>setTimeout(function(){
-                            window.location = 'quanlytheloai.php?page=" . $_GET['page'] . "';
-                        }, 2000)</script>";
-                    } else {
-                        echo '<div id="toast-changeCategory-error" class="toast-message"></div>';
-                    }
-                }
-            }
-        }
-    }
-    ?>
-
-    <?php
-    include "../config/connect.php";
-    if (isset($_GET['formdelcategory'])) {
-        echo '<div class="modal-delete js-modal-deleteCategory">
-        <form class="modal-delete-container js-modal-deleteCategory-container" method="post" action="quanlytheloai.php?page=' . $page . '&iddelcategory=' . (isset($_GET["iddelcategory"]) ? $_GET["iddelcategory"] : "") . '" enctype="multipart/form-data">
-            <div class="modal-delete-close js-modal-deleteCategory-close">
-                <i class="fa-solid fa-xmark"></i>
-            </div>
-            <div class="modal-delete-body">
-                <p>Do you want to delete category?</p>
-                <div class="btn-delete-choose">
-                    <button type="submit" name="deleteCategory" class="btn-yes js-category-btn-yes">Yes</button>
-                    <div class="btn-no js-category-btn-no">No</div>
-                </div>
-            </div>
-        </form>
-    </div>';
-    }
-    ?>
-
-    <?php
-    include "../config/connect.php";
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        if (isset($_POST["deleteCategory"])) {
-            $sql2 = "DELETE FROM categories WHERE id = " . $_GET['iddelcategory'];
-            if (mysqli_query($conn, $sql2)) {
-                echo '<div id="toast-deleteCategory-success" class="toast-message"></div>';
-                echo "<script>setTimeout(function(){
-                    window.location = 'quanlytheloai.php?page=" . $_GET['page'] . "';
-                }, 2000)</script>";
-            } else {
-                echo '<div id="toast-deleteCategory-error" class="toast-message"></div>';
-            }
-        }
-    }
-    ?>
     <script src="./js/script-form-category.js"></script>
     <script src="./js/script-message-category.js"></script>
     <script src="./js/script-check-category.js"></script>
     <script>
+        let currentEditCategoryId = null;
+
+        // Function to show edit category modal
+        function showEditCategoryModal(categoryId, categoryName, categoryDescription) {
+            const modal = document.querySelector('.js-modal-editCategory');
+            const nameInput = document.querySelector('#edit-category-name');
+            const descriptionInput = document.querySelector('#edit-category-description');
+
+            currentEditCategoryId = categoryId;
+            nameInput.value = categoryName;
+            descriptionInput.value = categoryDescription;
+            modal.style.display = 'flex';
+        }
+
+        // Function to handle delete category
+        function handleDeleteCategory(categoryId) {
+            const modal = document.querySelector('.js-modal-deleteCategory');
+            modal.style.display = 'flex';
+            modal.dataset.categoryId = categoryId;
+        }
+
+        // Function to update category
+        function updateCategory() {
+            if (!currentEditCategoryId) return;
+
+            const categoryName = document.querySelector('#edit-category-name').value.trim();
+            const categoryDescription = document.querySelector('#edit-category-description').value.trim();
+
+            if (!categoryName) {
+                alert('Category name is required');
+                return;
+            }
+
+            fetch('category_operations.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=update&category_id=${currentEditCategoryId}&category_name=${encodeURIComponent(categoryName)}&category_description=${encodeURIComponent(categoryDescription)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Category updated successfully!');
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while updating the category.');
+                });
+        }
+
+        // Function to delete category
+        function deleteCategory(categoryId) {
+            fetch('category_operations.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `action=delete&category_id=${categoryId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Category deleted successfully!');
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while deleting the category.');
+                });
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Edit modal close
+            const editCloseBtn = document.querySelector('.js-modal-editCategory-close');
+            const editCancelBtn = document.querySelector('.js-cancel-edit-category');
+            const editSaveBtn = document.querySelector('.js-save-category');
+            const editModal = document.querySelector('.js-modal-editCategory');
+
+            if (editCloseBtn) {
+                editCloseBtn.addEventListener('click', () => {
+                    editModal.style.display = 'none';
+                });
+            }
+
+            if (editCancelBtn) {
+                editCancelBtn.addEventListener('click', () => {
+                    editModal.style.display = 'none';
+                });
+            }
+
+            if (editSaveBtn) {
+                editSaveBtn.addEventListener('click', updateCategory);
+            }
+
+            // Delete modal
+            const deleteModal = document.querySelector('.js-modal-deleteCategory');
+            const deleteCloseBtn = document.querySelector('.js-modal-deleteCategory-close');
+            const confirmDeleteBtn = document.querySelector('.js-confirm-delete-category');
+            const cancelDeleteBtn = document.querySelector('.js-cancel-delete-category');
+
+            if (deleteCloseBtn) {
+                deleteCloseBtn.addEventListener('click', () => {
+                    deleteModal.style.display = 'none';
+                });
+            }
+
+            if (cancelDeleteBtn) {
+                cancelDeleteBtn.addEventListener('click', () => {
+                    deleteModal.style.display = 'none';
+                });
+            }
+
+            if (confirmDeleteBtn) {
+                confirmDeleteBtn.addEventListener('click', () => {
+                    const categoryId = deleteModal.dataset.categoryId;
+                    deleteModal.style.display = 'none';
+                    deleteCategory(categoryId);
+                });
+            }
+
+            // Close modals when clicking outside
+            if (editModal) {
+                editModal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.style.display = 'none';
+                    }
+                });
+            }
+
+            if (deleteModal) {
+                deleteModal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.style.display = 'none';
+                    }
+                });
+            }
+        });
+
         function toastCategory() {
             toastAddCategorySuccess();
             toastAddCategoryError();
