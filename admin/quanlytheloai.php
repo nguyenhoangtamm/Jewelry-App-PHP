@@ -1,17 +1,18 @@
 <?php
-    include "connect.php";
-    $sql = "SELECT * FROM category";
-    $result = mysqli_query($conn, $sql);
-    $pageRow = $result->num_rows;
-    $numPage = ceil($pageRow/5);
-    if(isset($_GET["page"])){
-        $page = $_GET["page"];
-    }else{
-        $page = 1;
-    }
+include "../config/connect.php";
+$sql = "SELECT * FROM categories";
+$result = mysqli_query($conn, $sql);
+$pageRow = $result->num_rows;
+$numPage = ceil($pageRow / 5);
+if (isset($_GET["page"])) {
+    $page = $_GET["page"];
+} else {
+    $page = 1;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,19 +29,20 @@
     <script type="text/javascript" charset="utf8" src="https://code.jquery.com/jquery-3.5.1.js"></script>
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.js"></script>
 </head>
+
 <body>
     <div class="sidebar">
         <ul class="menu">
             <li>
-                <a href="./trangchu.php">
+                <a href="./index.php">
                     <i class="fas fa-tachometer-alt"></i>
                     <span>Dashboard</span>
                 </a>
             </li>
             <li>
-                <a href="./quanlysach.php">
-                    <i class="fa-solid fa-book"></i>
-                    <span>Books</span>
+                <a href="./jewelry_management.php">
+                    <i class="fa-solid fa-gem"></i>
+                    <span>Jewelry</span>
                 </a>
             </li>
             <li>
@@ -55,15 +57,9 @@
                     <span>Orders</span>
                 </a>
             </li>
-            <li>
-                <a href="./quanlytacgia.php">
-                    <i class="fa-solid fa-feather"></i>
-                    <span>Author</span>
-                </a>
-            </li>
             <li class="active">
                 <a href="./quanlytheloai.php">
-                    <i class="fa-solid fa-rectangle-list"></i>
+                    <i class="fa-solid fa-tags"></i>
                     <span>Category</span>
                 </a>
             </li>
@@ -77,67 +73,66 @@
     </div>
     <div class="main-content">
         <div class="header-wrapper">
-                <div class="header-title">
-                    <h2>Categories Managerment</h2>
-                </div>
-                <div class="user-info">
-                    <img src="../images_web/avatar.png" alt="avatar">
-                </div>
+            <div class="header-title">
+                <h2>Categories Managerment</h2>
             </div>
-            <div class="table-wrapper">
-                <div class="table-header">
-                    <h3 class="main-title">
-                        Categories Information
-                    </h3>
-                    <div class="add-book add-category js-add-category"><i class="fa-solid fa-plus icon-add"></i>Add Category</div>
-                </div>
-                <div class="table-container" name="category-table">
-                    <table id="category-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Name</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                                include "connect.php";
-                                if($page==""){
-                                    $currentData = 0;
-                                }
-                                else{
-                                    $currentData = ($page-1)*5;
-                                }
-                                $sql = "SELECT * FROM category LIMIT " . $currentData . ", 5";
-                                $result = mysqli_query($conn, $sql);
-                                while ($row = mysqli_fetch_array($result)) {
-                                    $id_category = $row['id_category'];
-                                    $name_category = $row['name_category'];
-                                ?>
-                                    <tr>
-                                        <td class="category-id"><?php echo $row['id_category'] ?></td>
-                                        <td class="category-name"><?php echo $row['name_category'] ?></td>
-                                        <td>
-                                            <a href="quanlytheloai.php?page=<?php echo $page . "&idchangecategory=" . $row['id_category'] . "&formchangecategory=1"?>" class="fa-solid fa-pen icon-change js-changeCategory"></a>
-                                            <a href="quanlytheloai.php?page=<?php echo $page . "&iddelcategory=" . $row['id_category'] . "&formdelcategory=1"?>" class="fas fa-trash icon-delete js-delete-category"></a>
-                                        </td>
-                                    </tr>
-                                <?php } ?>
-                        </tbody>
-                    </table>
-                    <div class="pagination">
-                        <a href="quanlytheloai.php?page=<?php echo (($page -1)>0) ? ($page-1) : 1?>" class="prev">Prev</a>
+            <div class="user-info">
+                <img src="../images_web/avatar.png" alt="avatar">
+            </div>
+        </div>
+        <div class="table-wrapper">
+            <div class="table-header">
+                <h3 class="main-title">
+                    Categories Information
+                </h3>
+                <div class="add-book add-category js-add-category"><i class="fa-solid fa-plus icon-add"></i>Add Category</div>
+            </div>
+            <div class="table-container" name="category-table">
+                <table id="category-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                         <?php
-                            for($i=0; $i<$numPage; $i++){
-                            ?>
-                                <a href="quanlytheloai.php?page=<?php echo ($i+1)?>" class="<?php echo ($page==$i+1) ? "page-current" : ""?>"> <?php echo ($i+1)?> </a>
-                            <?php } ?>
-                        <a href="quanlytheloai.php?page=<?php echo (($page + 1)<=$numPage) ? ($page+1) : $numPage?>" class="next">Next</a>
-                    </div>
+                        include "../config/connect.php";
+                        if ($page == "") {
+                            $currentData = 0;
+                        } else {
+                            $currentData = ($page - 1) * 5;
+                        }
+                        $sql = "SELECT * FROM categories LIMIT " . $currentData . ", 5";
+                        $result = mysqli_query($conn, $sql);
+                        while ($row = mysqli_fetch_array($result)) {
+                            $id = $row['id'];
+                            $name = $row['name'];
+                        ?>
+                            <tr>
+                                <td class="category-id"><?php echo $row['id'] ?></td>
+                                <td class="category-name"><?php echo $row['name'] ?></td>
+                                <td>
+                                    <a href="quanlytheloai.php?page=<?php echo $page . "&idchangecategory=" . $row['id'] . "&formchangecategory=1" ?>" class="fa-solid fa-pen icon-change js-changeCategory"></a>
+                                    <a href="quanlytheloai.php?page=<?php echo $page . "&iddelcategory=" . $row['id'] . "&formdelcategory=1" ?>" class="fas fa-trash icon-delete js-delete-category"></a>
+                                </td>
+                            </tr>
+                        <?php } ?>
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <a href="quanlytheloai.php?page=<?php echo (($page - 1) > 0) ? ($page - 1) : 1 ?>" class="prev">Prev</a>
+                    <?php
+                    for ($i = 0; $i < $numPage; $i++) {
+                    ?>
+                        <a href="quanlytheloai.php?page=<?php echo ($i + 1) ?>" class="<?php echo ($page == $i + 1) ? "page-current" : "" ?>"> <?php echo ($i + 1) ?> </a>
+                    <?php } ?>
+                    <a href="quanlytheloai.php?page=<?php echo (($page + 1) <= $numPage) ? ($page + 1) : $numPage ?>" class="next">Next</a>
                 </div>
             </div>
         </div>
+    </div>
     </div>
     <div class="modal js-modal-addCategory">
         <form class="modal-container modal-container-category js-modal-addCategory-container" method="post" action="quanlytheloai.php" enctype="multipart/form-data">
@@ -146,7 +141,7 @@
             </div>
 
             <header class="modal-header modal-header-books">
-                <i class="modal-heading-icon fa-solid fa-feather"></i>
+                <i class="modal-heading-icon fa-solid fa-tags"></i>
                 Add Category
             </header>
 
@@ -170,47 +165,47 @@
         </form>
     </div>
     <?php
-        include "connect.php";
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if(isset($_POST["addCategory"])){
-                $nameCategory = $_POST["addCategory-name"];
-                $isDuplicate = false;
-                $sql2 = "SELECT * FROM category";
-                $names = mysqli_query($conn, $sql2);
-                while($category = mysqli_fetch_array($names)){
-                    if($category["name_category"]==$nameCategory){
-                        echo '<div id="toast-changeNameCategory-error" class="toast-message"></div>';
-                        $isDuplicate = true;
-                        break;
-                    }
+    include "../config/connect.php";
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (isset($_POST["addCategory"])) {
+            $nameCategory = $_POST["addCategory-name"];
+            $isDuplicate = false;
+            $sql2 = "SELECT * FROM categories";
+            $names = mysqli_query($conn, $sql2);
+            while ($category = mysqli_fetch_array($names)) {
+                if ($category["name"] == $nameCategory) {
+                    echo '<div id="toast-changeNameCategory-error" class="toast-message"></div>';
+                    $isDuplicate = true;
+                    break;
                 }
-                if(!$isDuplicate){
-                    $sql1 = "INSERT INTO category (name_category) VALUE('$nameCategory')";
-                    if (mysqli_query($conn, $sql1)) {
-                        echo '<div id="toast-addCategory-success" class="toast-message"></div>';
-                    } else {
-                        echo '<div id="toast-addCategory-error" class="toast-message"></div>';
-                    }
+            }
+            if (!$isDuplicate) {
+                $sql1 = "INSERT INTO category (name) VALUE('$nameCategory')";
+                if (mysqli_query($conn, $sql1)) {
+                    echo '<div id="toast-addCategory-success" class="toast-message"></div>';
+                } else {
+                    echo '<div id="toast-addCategory-error" class="toast-message"></div>';
                 }
             }
         }
+    }
     ?>
 
-<?php
-    include "connect.php";
-    if(isset($_GET['idchangecategory'])){
+    <?php
+    include "../config/connect.php";
+    if (isset($_GET['idchangecategory'])) {
         $idchange = $_GET['idchangecategory'];
-        $sql4 = "SELECT * FROM category WHERE id_category = " . $idchange;
+        $sql4 = "SELECT * FROM categories WHERE id = " . $idchange;
         $query = mysqli_query($conn, $sql4);
         if ($query) {
             $row = mysqli_fetch_array($query);
         }
     }
-?>
+    ?>
 
-<?php
-    include "connect.php";
-    if(isset($_GET['formchangecategory'])){
+    <?php
+    include "../config/connect.php";
+    if (isset($_GET['formchangecategory'])) {
         echo '<div class="modal js-modal-category modal-change-category" style="display:flex;">
         <form action="quanlytheloai.php?page=' . $page . '&idchangecategory=' . (isset($_GET["idchangecategory"]) ? $_GET["idchangecategory"] : "") . '" method="post" class="modal-container js-modalCategory-container modal-container-category" enctype="multipart/form-data">
             <div class="modal-close js-modalCategory-close">
@@ -218,7 +213,7 @@
             </div>
 
             <header class="modal-header">
-                <i class="modal-heading-icon fa-solid fa-user"></i>
+                <i class="modal-heading-icon fa-solid fa-tags"></i>
                 Change Category Information
             </header>
 
@@ -226,11 +221,11 @@
                 <div class="modal-col">
                     <label for="category-name" class="modal-label" style="display: none;">
                         ID
-                        <input value="'.$row["id_category"].'" name="changeCategory-id" id="category-id" type="text" class="js-category-id modal-input modal-input-category" placeholder="ID..." required>
+                        <input value="' . $row["id"] . '" name="changeCategory-id" id="category-id" type="text" class="js-category-id modal-input modal-input-category" placeholder="ID..." required>
                     </label>
                     <label for="category-name" class="modal-label">
                         Name
-                        <input value="'.$row["name_category"].'" name="changeCategory-name" id="category-name" type="text" class="js-category-name modal-input modal-input-category" placeholder="Name..." required>
+                        <input value="' . $row["name"] . '" name="changeCategory-name" id="category-name" type="text" class="js-category-name modal-input modal-input-category" placeholder="Name..." required>
                         <span class="name-changeCategory-error check-error"></span>
                     </label>
                 <div class="action-form">
@@ -245,27 +240,27 @@
         </form>
     </div>';
     }
-?>
+    ?>
 
-<?php
+    <?php
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        if(isset($_POST["changeCategory"])){
+        if (isset($_POST["changeCategory"])) {
             $nameCategory = $_POST["changeCategory-name"];
             $idCategory = $_POST["changeCategory-id"];
             $isDuplicate = false;
-            if($_GET["idchangecategory"]){
-                $sql2 = "SELECT * FROM category";
+            if ($_GET["idchangecategory"]) {
+                $sql2 = "SELECT * FROM categories";
                 $names = mysqli_query($conn, $sql2);
-                while($category = mysqli_fetch_array($names)){
-                    if($category["name_category"]==$nameCategory && $category["id_category"]!=$idCategory){
+                while ($category = mysqli_fetch_array($names)) {
+                    if ($category["name"] == $nameCategory && $category["id"] != $idCategory) {
                         echo '<div id="toast-changeNameCategory-error" class="toast-message"></div>';
                         $isDuplicate = true;
                         break;
                     }
                 }
-                if(!$isDuplicate) {
-                    $sql1 = "UPDATE category SET name_category = '$nameCategory' WHERE id_category = " . $_GET["idchangecategory"];
-                    if(mysqli_query($conn, $sql1)) {
+                if (!$isDuplicate) {
+                    $sql1 = "UPDATE categories SET name = '$nameCategory' WHERE id = " . $_GET["idchangecategory"];
+                    if (mysqli_query($conn, $sql1)) {
                         echo '<div id="toast-changeCategory-success" class="toast-message"></div>';
                         echo "<script>setTimeout(function(){
                             window.location = 'quanlytheloai.php?page=" . $_GET['page'] . "';
@@ -277,11 +272,11 @@
             }
         }
     }
-?>
+    ?>
 
-<?php
-    include "connect.php";
-    if(isset($_GET['formdelcategory'])){
+    <?php
+    include "../config/connect.php";
+    if (isset($_GET['formdelcategory'])) {
         echo '<div class="modal-delete js-modal-deleteCategory">
         <form class="modal-delete-container js-modal-deleteCategory-container" method="post" action="quanlytheloai.php?page=' . $page . '&iddelcategory=' . (isset($_GET["iddelcategory"]) ? $_GET["iddelcategory"] : "") . '" enctype="multipart/form-data">
             <div class="modal-delete-close js-modal-deleteCategory-close">
@@ -297,13 +292,13 @@
         </form>
     </div>';
     }
-?>
+    ?>
 
-<?php
-    include "connect.php";
+    <?php
+    include "../config/connect.php";
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        if(isset($_POST["deleteCategory"])){
-            $sql2 = "DELETE FROM category WHERE id_category = " . $_GET['iddelcategory'];
+        if (isset($_POST["deleteCategory"])) {
+            $sql2 = "DELETE FROM categories WHERE id = " . $_GET['iddelcategory'];
             if (mysqli_query($conn, $sql2)) {
                 echo '<div id="toast-deleteCategory-success" class="toast-message"></div>';
                 echo "<script>setTimeout(function(){
@@ -314,7 +309,7 @@
             }
         }
     }
-?>
+    ?>
     <script src="./js/script-form-category.js"></script>
     <script src="./js/script-message-category.js"></script>
     <script src="./js/script-check-category.js"></script>
@@ -331,4 +326,5 @@
         toastCategory();
     </script>
 </body>
+
 </html>

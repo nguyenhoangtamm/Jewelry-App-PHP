@@ -1,10 +1,5 @@
 <?php
-include "../config/connect.php";
-
-// Xử lý phân trang
-$page = isset($_GET["page"]) ? (int)$_GET["page"] : 1;
-$limit = 5;
-include "../config/connect.php";
+include "connect.php";
 $sql = "SELECT * FROM orders";
 $result = mysqli_query($conn, $sql);
 $pageRow = $result->num_rows;
@@ -89,7 +84,7 @@ if (isset($_GET["page"])) {
                             <th>Order date</th>
                             <th>Customer Name</th>
                             <th>Address</th>
-                            <th>Phone_number</th>
+                            <th>Phone</th>
                             <th>Price</th>
                             <th>Status</th>
                             <th>Notes</th>
@@ -98,7 +93,7 @@ if (isset($_GET["page"])) {
                     </thead>
                     <tbody>
                         <?php
-                        include "../config/connect.php";
+                        include "connect.php";
                         if ($page == "") {
                             $currentData = 0;
                         } else {
@@ -107,58 +102,44 @@ if (isset($_GET["page"])) {
                         $sql = "SELECT * FROM orders LIMIT " . $currentData . ", 5";
                         $result = mysqli_query($conn, $sql);
                         while ($row = mysqli_fetch_array($result)) {
-                            $id = $row['id'];
-                            $date_order = $row['created_at'];
-                            $notes = $row['status'];
-                            $sql_address = "SELECT address FROM users WHERE id = " . $row['id'];
+                            $id_order = $row['order_id'];
+                            $date_order = $row['order_date'];
+                            $notes = $row['notes'];
+                            $sql_address = "SELECT address FROM users WHERE user_id = " . $row['user_id'];
                             $address_result = mysqli_query($conn, $sql_address);
                             $address_row = mysqli_fetch_array($address_result);
                             $address = $address_row['address'];
-                            $sql_name = "SELECT username FROM users WHERE id = " . $row['id'];
+                            $sql_name = "SELECT username FROM users WHERE user_id = " . $row['user_id'];
                             $name_result = mysqli_query($conn, $sql_name);
                             $name_row = mysqli_fetch_array($name_result);
                             $name = $name_row['username'];
-                            $sql_phone_number = "SELECT phone_number FROM users WHERE id = " . $row['id'];
-                            $phone_number_result = mysqli_query($conn, $sql_phone_number);
-                            $phone_number_row = mysqli_fetch_array($phone_number_result);
-                            $phone_number = $phone_number_row['phone_number'];
-                            $sql_sumprice = "SELECT SUM(order_details.quantity * jewelries.price) as totalprice 
-                            FROM jewelries 
-                            INNER JOIN order_details ON jewelries.id = order_details.jewelry_id 
-                            WHERE order_details.order_id = " . $row['id'];
-                            $sumprice_result = mysqli_query($conn, $sql_sumprice);
-                            $sumprice_row = mysqli_fetch_array($sumprice_result);
-                            $sumprice = $sumprice_row['totalprice'];
+                            $sql_phone = "SELECT phone FROM users WHERE user_id = " . $row['user_id'];
+                            $phone_result = mysqli_query($conn, $sql_phone);
+                            $phone_row = mysqli_fetch_array($phone_result);
+                            $phone = $phone_row['phone'];
+                            // Use total_amount from orders table if available, otherwise calculate
+                            if (isset($row['total_amount']) && $row['total_amount'] > 0) {
+                                $sumprice = $row['total_amount'];
+                            } else {
+                                $sql_sumprice = "SELECT SUM(order_jewelry.quantity * order_jewelry.price) as totalprice FROM order_jewelry WHERE order_jewelry.order_id = " . $row['order_id'];
+                                $sumprice_result = mysqli_query($conn, $sql_sumprice);
+                                $sumprice_row = mysqli_fetch_array($sumprice_result);
+                                $sumprice = $sumprice_row['totalprice'];
+                            }
                             $status = $row['status'];
-                            $sql_namejewelry = "SELECT jewelries.name as name_jewelry 
-                            FROM jewelries 
-                            INNER JOIN order_details ON jewelries.id = order_details.jewelry_id 
-                            WHERE order_details.order_id = " . $row['id'] . " 
-                            LIMIT 1";
-                            $namejewelry_result = mysqli_query($conn, $sql_namejewelry);
-                            $namejewelry_row = mysqli_fetch_array($namejewelry_result);
-                            $namejewelry = $namejewelry_row['name_jewelry'];
                         ?>
                             <tr>
-                                <td class="order-id"><?php echo $id ?></td>
+                                <td class="order-id"><?php echo $id_order ?></td>
                                 <td class="order-date"><?php echo $date_order ?></td>
                                 <td class="order-name"><?php echo $name ?></td>
                                 <td class="order-address"><?php echo $address ?></td>
-                                <td class="order-phone_number"><?php echo $phone_number ?></td>
+                                <td class="order-phone"><?php echo $phone ?></td>
                                 <td class="order-price"><?php echo $sumprice ?>$</td>
                                 <td class="order-status <?php echo $status ?>"><?php echo $status ?></td>
                                 <td class="order-notes"><?php echo $notes ?></td>
                                 <td>
-                                    <a <?php echo ($status === 'Cancelled' || $status === 'Complete') ?
-                                            "href='quanlyhoadon.php?page={$page}&iddeleteorder={$id}&formdeleteorder=1&status={$status}'" :
-                                            "href='quanlyhoadon.php?page={$page}&formcantdeleteorder=1'" ?>
-                                        class="fas fa-trash icon-delete js-delete-order">
-                                    </a>
-                                    <a href="#"
-                                        class="fa-regular fa-eye icon-detail js-detail-order"
-                                        data-order-id="<?php echo $id ?>"
-                                        data-status="<?php echo $status ?>">
-                                    </a>
+                                    <a <?php echo ($status === 'Cancelled' || $status === 'Complete') ? "href='quanlyhoadon.php?page={$page}&iddeleteorder={$id_order}&formdeleteorder=1&status={$status}'" : "href='quanlyhoadon.php?page={$page}&formcantdeleteorder=1'" ?> class="fas fa-trash icon-delete js-delete-order"></a>
+                                    <a href="quanlyhoadon.php?page=<?php echo $page . "&iddetailorder=" . $id_order . "&formdetailorder=1&status=" . $status ?>" class="fa-regular fa-eye icon-detail js-detail-order"></a>
                                 </td>
                             </tr>
                         <?php } ?>
@@ -179,35 +160,37 @@ if (isset($_GET["page"])) {
     </div>
 
     <?php
-    include "../config/connect.php";
-    if (isset($_GET['formdetailorder']) && $_GET['status'] === 'đang xử lý') {
+    include "connect.php";
+    if (isset($_GET['formdetailorder']) && $_GET['status'] === 'New') {
         $total = 0;
-        $order_id = intval($_GET['iddetailorder']);
-        // Get order info
-        $sql_order = "SELECT * FROM orders WHERE id = $order_id";
-        $order_result = mysqli_query($conn, $sql_order);
-        $order_row = mysqli_fetch_assoc($order_result);
-
-        // Get user info
-        $user_id = $order_row['id'];
-        $sql_user = "SELECT * FROM users WHERE id = $user_id";
-        $user_result = mysqli_query($conn, $sql_user);
-        $user_row = mysqli_fetch_assoc($user_result);
-
-        $date = $order_row['created_at'];
-        $name = $user_row['username'];
-        $address = $user_row['address'];
-        $phone_number = $user_row['phone_number'];
-        $notes = $order_row['status'];
-
-        echo '<div class="modal js-modal-dOrder-đang xử lý modal-order">
-            <form class="modal-container js-modal-dOrder-đang xử lý-container">
-                <div class="modal-close js-modal-dOrder-đang xử lý-close">
+        $sql_date = "SELECT order_date FROM orders WHERE order_id = " . $_GET['iddetailorder'];
+        $date_result = mysqli_query($conn, $sql_date);
+        $date_row = mysqli_fetch_array($date_result);
+        $date = $date_row['order_date'];
+        $sql_name = "SELECT username FROM users, orders WHERE users.user_id = orders.user_id AND orders.order_id = " . $_GET['iddetailorder'];
+        $name_result = mysqli_query($conn, $sql_name);
+        $name_row = mysqli_fetch_array($name_result);
+        $name = $name_row['username'];
+        $sql_address = "SELECT address FROM users, orders WHERE users.user_id = orders.user_id AND orders.order_id = " . $_GET['iddetailorder'];
+        $address_result = mysqli_query($conn, $sql_address);
+        $address_row = mysqli_fetch_array($address_result);
+        $address = $address_row['address'];
+        $sql_phone = "SELECT phone FROM users, orders WHERE users.user_id = orders.user_id AND orders.order_id = " . $_GET['iddetailorder'];
+        $phone_result = mysqli_query($conn, $sql_phone);
+        $phone_row = mysqli_fetch_array($phone_result);
+        $phone = $phone_row['phone'];
+        $sql_notes = "SELECT notes FROM orders WHERE order_id = " . $_GET['iddetailorder'];
+        $notes_result = mysqli_query($conn, $sql_notes);
+        $notes_row = mysqli_fetch_array($notes_result);
+        $notes = $notes_row['notes'];
+        echo '<div class="modal js-modal-dOrder-new modal-order">
+            <form class="modal-container js-modal-dOrder-new-container">
+                <div class="modal-close js-modal-dOrder-new-close">
                     <i class="fa-solid fa-xmark"></i>
                 </div>
     
                 <header class="modal-header modal-header-books">
-                    <i class="modal-heading-icon fa-solid fa-book"></i>
+                    <i class="modal-heading-icon fa-solid fa-gem"></i>
                     Order Detail
                 </header>
     
@@ -233,8 +216,8 @@ if (isset($_GET["page"])) {
                     </div>
     
                     <div class="modal-col content-order">
-                        <label for="" class="modal-label-order">Phone_number: </label>
-                        <p class="orderDetails-phone_number">' . $phone_number . '</p>
+                        <label for="" class="modal-label-order">Phone: </label>
+                        <p class="orderDetails-phone">' . $phone . '</p>
                     </div>
 
                     <div class="modal-col content-order">
@@ -256,21 +239,25 @@ if (isset($_GET["page"])) {
                                 </thead>
                                 <tbody>';
 
-        // Get order details
-        $sql = "SELECT order_details.*, jewelries.name as jewelry_name, jewelries.price, categories.name as category_name
-                FROM order_details
-                INNER JOIN jewelries ON order_details.jewelry_id = jewelries.id
-                INNER JOIN categories ON jewelries.category_id = categories.id
-                WHERE order_details.order_id = $order_id";
+        $sql = "SELECT * FROM order_jewelry WHERE order_id = " . $_GET["iddetailorder"];
         $result = mysqli_query($conn, $sql);
-        while ($row = mysqli_fetch_assoc($result)) {
-            $subTotal = intval($row["quantity"]) * $row["price"];
+        while ($row = mysqli_fetch_array($result)) {
+            $sql2 = "SELECT name, price FROM jewelries WHERE jewelry_id = " . $row['jewelry_id'];
+            $result_namejewelry = mysqli_query($conn, $sql2);
+            $row_namejewelry = mysqli_fetch_array($result_namejewelry);
+
+            $sql3 = "SELECT name_category FROM jewelries, category 
+                 WHERE jewelries.jewelry_id = " . $row['jewelry_id'] . " 
+                 AND jewelries.category_id = category.id_category";
+            $result_namecategory = mysqli_query($conn, $sql3);
+            $row_namecategory = mysqli_fetch_array($result_namecategory);
+            $subTotal = intval($row["quantity"]) * $row_namejewelry["price"];
             $total += $subTotal;
             echo '<tr>
-                <td class="dOrder-bookName">' . htmlspecialchars($row["jewelry_name"]) . '</td>
-                <td class="dOrder-bookCategory">' . htmlspecialchars($row["category_name"]) . '</td>
-                <td class="dOrder-bookQuantity">' . $row["quantity"] . '</td>
-                <td class="dOrder-bookPrice">' . $row["price"] . '$</td>
+                <td class="dOrder-jewelryName">' . $row_namejewelry["name"] . '</td>
+                <td class="dOrder-jewelryCategory">' . $row_namecategory["name_category"] . '</td>
+                <td class="dOrder-jewelryQuantity">' . $row["quantity"] . '</td>
+                <td class="dOrder-jewelryPrice">' . $row_namejewelry["price"] . '$</td>
                 <td class="dOrder-total">' . $subTotal . '$</td>
             </tr>';
         }
@@ -296,29 +283,29 @@ if (isset($_GET["page"])) {
     ?>
 
     <?php
-    include "../config/connect.php";
+    include "connect.php";
     if (isset($_GET['formdetailorder']) && $_GET['status'] === 'Delivering') {
         $total = 0;
-        $sql_date = "SELECT created_at FROM order_books WHERE id = " . $_GET['iddetailorder'];
+        $sql_date = "SELECT order_date FROM orders WHERE order_id = " . $_GET['iddetailorder'];
         $date_result = mysqli_query($conn, $sql_date);
         $date_row = mysqli_fetch_array($date_result);
-        $date = $date_row['created_at'];
-        $sql_name = "SELECT name_customer FROM customer, order_books WHERE customer.id_customer = order_books.id_customer AND order_books.id = " . $_GET['iddetailorder'];
+        $date = $date_row['order_date'];
+        $sql_name = "SELECT username FROM users, orders WHERE users.user_id = orders.user_id AND orders.order_id = " . $_GET['iddetailorder'];
         $name_result = mysqli_query($conn, $sql_name);
         $name_row = mysqli_fetch_array($name_result);
-        $name = $name_row['name_customer'];
-        $sql_address = "SELECT address FROM customer, order_books WHERE customer.id_customer = order_books.id_customer AND order_books.id = " . $_GET['iddetailorder'];
+        $name = $name_row['username'];
+        $sql_address = "SELECT address FROM users, orders WHERE users.user_id = orders.user_id AND orders.order_id = " . $_GET['iddetailorder'];
         $address_result = mysqli_query($conn, $sql_address);
         $address_row = mysqli_fetch_array($address_result);
         $address = $address_row['address'];
-        $sql_phone_number = "SELECT phone_number FROM customer, order_books WHERE customer.id_customer = order_books.id_customer AND order_books.id = " . $_GET['iddetailorder'];
-        $phone_number_result = mysqli_query($conn, $sql_phone_number);
-        $phone_number_row = mysqli_fetch_array($phone_number_result);
-        $phone_number = $phone_number_row['phone_number'];
-        $sql_notes = "SELECT notes FROM order_books WHERE id = " . $_GET['iddetailorder'];
+        $sql_phone = "SELECT phone FROM users, orders WHERE users.user_id = orders.user_id AND orders.order_id = " . $_GET['iddetailorder'];
+        $phone_result = mysqli_query($conn, $sql_phone);
+        $phone_row = mysqli_fetch_array($phone_result);
+        $phone = $phone_row['phone'];
+        $sql_notes = "SELECT notes FROM orders WHERE order_id = " . $_GET['iddetailorder'];
         $notes_result = mysqli_query($conn, $sql_notes);
         $notes_row = mysqli_fetch_array($notes_result);
-        $notes = $notes_row['status'];
+        $notes = $notes_row['notes'];
         echo '<div class="modal js-modal-dOrder-deliver modal-order">
             <form class="modal-container js-modal-dOrder-deliver-container">
                 <div class="modal-close js-modal-dOrder-deliver-close">
@@ -326,7 +313,7 @@ if (isset($_GET["page"])) {
                 </div>
 
                 <header class="modal-header modal-header-books">
-                    <i class="modal-heading-icon fa-solid fa-book"></i>
+                    <i class="modal-heading-icon fa-solid fa-gem"></i>
                     Order Detail
                 </header>
     
@@ -352,8 +339,8 @@ if (isset($_GET["page"])) {
                     </div>
     
                     <div class="modal-col content-order">
-                        <label for="" class="modal-label-order">Phone_number: </label>
-                        <p class="orderDetails-phone_number">' . $phone_number . '</p>
+                        <label for="" class="modal-label-order">Phone: </label>
+                        <p class="orderDetails-phone">' . $phone . '</p>
                     </div>
 
                     <div class="modal-col content-order">
@@ -366,7 +353,7 @@ if (isset($_GET["page"])) {
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Book Name</th>
+                                        <th>Jewelry Name</th>
                                         <th>Category</th>
                                         <th>Quantity</th>
                                         <th>Price</th>
@@ -375,29 +362,25 @@ if (isset($_GET["page"])) {
                                 </thead>
                                 <tbody>';
 
-        $sql = "SELECT * FROM order_details WHERE id = " . $_GET["iddetailorder"];
+        $sql = "SELECT * FROM order_jewelry WHERE order_id = " . $_GET["iddetailorder"];
         $result = mysqli_query($conn, $sql);
         while ($row = mysqli_fetch_array($result)) {
-            $sql2 = "SELECT name, price FROM book, order_books, order_details 
-                 WHERE book.id_book = " . $row['id_book'] . " 
-                 AND order_details.id = order_books.id 
-                 AND order_books.id = " . $row['id'];
-            $result_namebook = mysqli_query($conn, $sql2);
-            $row_namebook = mysqli_fetch_array($result_namebook);
+            $sql2 = "SELECT name, price FROM jewelries WHERE jewelry_id = " . $row['jewelry_id'];
+            $result_namejewelry = mysqli_query($conn, $sql2);
+            $row_namejewelry = mysqli_fetch_array($result_namejewelry);
 
-            $sql3 = "SELECT name_category FROM book, order_books, order_details, category 
-                 WHERE book.id_book = " . $row['id_book'] . " 
-                 AND order_details.id = order_books.id 
-                 AND order_books.id = " . $row['id'] . " AND book.id_category = category.id_category";
+            $sql3 = "SELECT name_category FROM jewelries, category 
+                 WHERE jewelries.jewelry_id = " . $row['jewelry_id'] . " 
+                 AND jewelries.category_id = category.id_category";
             $result_namecategory = mysqli_query($conn, $sql3);
             $row_namecategory = mysqli_fetch_array($result_namecategory);
-            $subTotal = intval($row["total_amount"]) * $row_namebook["price"];
+            $subTotal = intval($row["quantity"]) * $row_namejewelry["price"];
             $total += $subTotal;
             echo '<tr>
-                <td class="dOrder-bookName">' . $row_namebook["name"] . '</td>
-                <td class="dOrder-bookCategory">' . $row_namecategory["name_category"] . '</td>
-                <td class="dOrder-bookQuantity">' . $row["total_amount"] . '</td>
-                <td class="dOrder-bookPrice">' . $row_namebook["price"] . '$</td>
+                <td class="dOrder-jewelryName">' . $row_namejewelry["name"] . '</td>
+                <td class="dOrder-jewelryCategory">' . $row_namecategory["name_category"] . '</td>
+                <td class="dOrder-jewelryQuantity">' . $row["quantity"] . '</td>
+                <td class="dOrder-jewelryPrice">' . $row_namejewelry["price"] . '$</td>
                 <td class="dOrder-total">' . $subTotal . '$</td>
             </tr>';
         }
@@ -421,29 +404,29 @@ if (isset($_GET["page"])) {
     ?>
 
     <?php
-    include "../config/connect.php";
+    include "connect.php";
     if (isset($_GET['formdetailorder']) && ($_GET['status'] === 'Complete' || $_GET['status'] === 'Cancelled')) {
         $total = 0;
-        $sql_date = "SELECT created_at FROM order_books WHERE id = " . $_GET['iddetailorder'];
+        $sql_date = "SELECT order_date FROM orders WHERE order_id = " . $_GET['iddetailorder'];
         $date_result = mysqli_query($conn, $sql_date);
         $date_row = mysqli_fetch_array($date_result);
-        $date = $date_row['created_at'];
-        $sql_name = "SELECT name_customer FROM customer, order_books WHERE customer.id_customer = order_books.id_customer AND order_books.id = " . $_GET['iddetailorder'];
+        $date = $date_row['order_date'];
+        $sql_name = "SELECT username FROM users, orders WHERE users.user_id = orders.user_id AND orders.order_id = " . $_GET['iddetailorder'];
         $name_result = mysqli_query($conn, $sql_name);
         $name_row = mysqli_fetch_array($name_result);
-        $name = $name_row['name_customer'];
-        $sql_address = "SELECT address FROM customer, order_books WHERE customer.id_customer = order_books.id_customer AND order_books.id = " . $_GET['iddetailorder'];
+        $name = $name_row['username'];
+        $sql_address = "SELECT address FROM users, orders WHERE users.user_id = orders.user_id AND orders.order_id = " . $_GET['iddetailorder'];
         $address_result = mysqli_query($conn, $sql_address);
         $address_row = mysqli_fetch_array($address_result);
         $address = $address_row['address'];
-        $sql_phone_number = "SELECT phone_number FROM customer, order_books WHERE customer.id_customer = order_books.id_customer AND order_books.id = " . $_GET['iddetailorder'];
-        $phone_number_result = mysqli_query($conn, $sql_phone_number);
-        $phone_number_row = mysqli_fetch_array($phone_number_result);
-        $phone_number = $phone_number_row['phone_number'];
-        $sql_notes = "SELECT notes FROM order_books WHERE id = " . $_GET['iddetailorder'];
+        $sql_phone = "SELECT phone FROM users, orders WHERE users.user_id = orders.user_id AND orders.order_id = " . $_GET['iddetailorder'];
+        $phone_result = mysqli_query($conn, $sql_phone);
+        $phone_row = mysqli_fetch_array($phone_result);
+        $phone = $phone_row['phone'];
+        $sql_notes = "SELECT notes FROM orders WHERE order_id = " . $_GET['iddetailorder'];
         $notes_result = mysqli_query($conn, $sql_notes);
         $notes_row = mysqli_fetch_array($notes_result);
-        $notes = $notes_row['status'];
+        $notes = $notes_row['notes'];
         echo '<div class="modal js-modal-dOrder-complete modal-order">
             <div class="modal-container js-modal-dOrder-complete-container">
                 <div class="modal-close js-modal-dOrder-complete-close">
@@ -451,7 +434,7 @@ if (isset($_GET["page"])) {
                 </div>
 
                 <header class="modal-header modal-header-books">
-                    <i class="modal-heading-icon fa-solid fa-book"></i>
+                    <i class="modal-heading-icon fa-solid fa-gem"></i>
                     Order Detail
                 </header>
     
@@ -477,8 +460,8 @@ if (isset($_GET["page"])) {
                     </div>
     
                     <div class="modal-col content-order">
-                        <label for="" class="modal-label-order">Phone_number: </label>
-                        <p class="orderDetails-phone_number">' . $phone_number . '</p>
+                        <label for="" class="modal-label-order">Phone: </label>
+                        <p class="orderDetails-phone">' . $phone . '</p>
                     </div>
 
                     <div class="modal-col content-order">
@@ -491,7 +474,7 @@ if (isset($_GET["page"])) {
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Book Name</th>
+                                        <th>Jewelry Name</th>
                                         <th>Category</th>
                                         <th>Quantity</th>
                                         <th>Price</th>
@@ -500,29 +483,25 @@ if (isset($_GET["page"])) {
                                 </thead>
                                 <tbody>';
 
-        $sql = "SELECT * FROM order_details WHERE id = " . $_GET["iddetailorder"];
+        $sql = "SELECT * FROM order_jewelry WHERE order_id = " . $_GET["iddetailorder"];
         $result = mysqli_query($conn, $sql);
         while ($row = mysqli_fetch_array($result)) {
-            $sql2 = "SELECT name, price FROM book, order_books, order_details 
-                 WHERE book.id_book = " . $row['id_book'] . " 
-                 AND order_details.id = order_books.id 
-                 AND order_books.id = " . $row['id'];
-            $result_namebook = mysqli_query($conn, $sql2);
-            $row_namebook = mysqli_fetch_array($result_namebook);
+            $sql2 = "SELECT name, price FROM jewelries WHERE jewelry_id = " . $row['jewelry_id'];
+            $result_namejewelry = mysqli_query($conn, $sql2);
+            $row_namejewelry = mysqli_fetch_array($result_namejewelry);
 
-            $sql3 = "SELECT name_category FROM book, order_books, order_details, category 
-                 WHERE book.id_book = " . $row['id_book'] . " 
-                 AND order_details.id = order_books.id 
-                 AND order_books.id = " . $row['id'] . " AND book.id_category = category.id_category";
+            $sql3 = "SELECT name_category FROM jewelries, category 
+                 WHERE jewelries.jewelry_id = " . $row['jewelry_id'] . " 
+                 AND jewelries.category_id = category.id_category";
             $result_namecategory = mysqli_query($conn, $sql3);
             $row_namecategory = mysqli_fetch_array($result_namecategory);
-            $subTotal = intval($row["total_amount"]) * $row_namebook["price"];
+            $subTotal = intval($row["quantity"]) * $row_namejewelry["price"];
             $total += $subTotal;
             echo '<tr>
-                <td class="dOrder-bookName">' . $row_namebook["name"] . '</td>
-                <td class="dOrder-bookCategory">' . $row_namecategory["name_category"] . '</td>
-                <td class="dOrder-bookQuantity">' . $row["total_amount"] . '</td>
-                <td class="dOrder-bookPrice">' . $row_namebook["price"] . '$</td>
+                <td class="dOrder-jewelryName">' . $row_namejewelry["name"] . '</td>
+                <td class="dOrder-jewelryCategory">' . $row_namecategory["name_category"] . '</td>
+                <td class="dOrder-jewelryQuantity">' . $row["quantity"] . '</td>
+                <td class="dOrder-jewelryPrice">' . $row_namejewelry["price"] . '$</td>
                 <td class="dOrder-total">' . $subTotal . '$</td>
             </tr>';
         }
@@ -543,7 +522,7 @@ if (isset($_GET["page"])) {
     ?>
 
     <?php
-    include "../config/connect.php";
+    include "connect.php";
     if (isset($_GET['confirmApprove'])) {
         echo '<div class="modal-delete js-modal-confirmApprove" style="display:flex">
     <form class="modal-delete-container js-modal-confirmApprove-container" method="post"
@@ -568,10 +547,10 @@ if (isset($_GET["page"])) {
     ?>
 
     <?php
-    include "../config/connect.php";
+    include "connect.php";
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST["approveOrder"])) {
-            $sql2 = "UPDATE order_books SET status = 'Delivering' WHERE id = " . $_GET['iddetailorder'];
+            $sql2 = "UPDATE orders SET status = 'Delivering' WHERE order_id = " . $_GET['iddetailorder'];
             if (mysqli_query($conn, $sql2)) {
                 echo '<div id="toast-approve-success" class="toast-message"></div>';
                 echo "<script>setTimeout(function(){
@@ -585,7 +564,7 @@ if (isset($_GET["page"])) {
     ?>
 
     <?php
-    include "../config/connect.php";
+    include "connect.php";
     if (isset($_GET['confirmCancelled'])) {
         echo '<div class="modal-delete js-modal-confirmCancelled" style="display:flex">
     <form class="modal-delete-container js-modal-confirmCancelled-container" method="post"
@@ -610,15 +589,16 @@ if (isset($_GET["page"])) {
     ?>
 
     <?php
-    include "../config/connect.php";
+    include "connect.php";
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST["cancelledOrder"])) {
-            $sql3 = "UPDATE book
-            JOIN order_details ON book.id_book = order_details.id_book
-            JOIN order_books ON order_details.id = order_books.id
-            SET book.quantity = book.quantity + order_details.total_amount
-            WHERE order_books.id = " . $_GET['iddetailorder'];
-            $sql2 = "UPDATE order_books SET status = 'Cancelled' WHERE id = " . $_GET['iddetailorder'];
+            // Update jewelry stock when order is cancelled
+            $sql3 = "UPDATE jewelries
+            JOIN order_jewelry ON jewelries.jewelry_id = order_jewelry.jewelry_id
+            JOIN orders ON order_jewelry.order_id = orders.order_id
+            SET jewelries.stock_quantity = jewelries.stock_quantity + order_jewelry.quantity
+            WHERE orders.order_id = " . $_GET['iddetailorder'];
+            $sql2 = "UPDATE orders SET status = 'Cancelled' WHERE order_id = " . $_GET['iddetailorder'];
             if (mysqli_query($conn, $sql2) && mysqli_query($conn, $sql3)) {
                 echo '<div id="toast-cancelled-success" class="toast-message"></div>';
                 echo "<script>setTimeout(function(){
@@ -632,7 +612,7 @@ if (isset($_GET["page"])) {
     ?>
 
     <?php
-    include "../config/connect.php";
+    include "connect.php";
     if (isset($_GET['confirmComplete'])) {
         echo '<div class="modal-delete js-modal-confirmComplete" style="display:flex">
     <form class="modal-delete-container js-modal-confirmComplete-container" method="post"
@@ -657,10 +637,10 @@ if (isset($_GET["page"])) {
     ?>
 
     <?php
-    include "../config/connect.php";
+    include "connect.php";
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST["completeOrder"])) {
-            $sql2 = "UPDATE order_books SET status = 'Complete' WHERE id = " . $_GET['iddetailorder'];
+            $sql2 = "UPDATE orders SET status = 'Complete' WHERE order_id = " . $_GET['iddetailorder'];
             if (mysqli_query($conn, $sql2)) {
                 echo '<div id="toast-completeOrder-success" class="toast-message"></div>';
                 echo "<script>setTimeout(function(){
@@ -674,7 +654,7 @@ if (isset($_GET["page"])) {
     ?>
 
     <?php
-    include "../config/connect.php";
+    include "connect.php";
     if (isset($_GET['formcantdeleteorder'])) {
         echo '<div id="toast-deleteOrder-error" class="toast-message"></div>';
         echo "<script>setTimeout(function(){
@@ -684,7 +664,7 @@ if (isset($_GET["page"])) {
     ?>
 
     <?php
-    include "../config/connect.php";
+    include "connect.php";
     if (isset($_GET['formdeleteorder'])) {
         echo '<div class="modal-delete js-modal-deleteOrder" style="display:flex">
     <form class="modal-delete-container js-modal-deleteOrder-container" method="post"
@@ -709,10 +689,10 @@ if (isset($_GET["page"])) {
     ?>
 
     <?php
-    include "../config/connect.php";
+    include "connect.php";
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST["deleteOrder"])) {
-            $sql2 = "DELETE FROM order_books WHERE id = " . $_GET['iddeleteorder'];
+            $sql2 = "DELETE FROM orders WHERE order_id = " . $_GET['iddeleteorder'];
             if (mysqli_query($conn, $sql2)) {
                 echo '<div id="toast-deleteOrder-success" class="toast-message"></div>';
                 echo "<script>setTimeout(function(){
