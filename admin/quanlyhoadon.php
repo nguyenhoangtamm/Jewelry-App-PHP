@@ -109,15 +109,15 @@ if (isset($_GET["page"])) {
                         while ($row = mysqli_fetch_array($result)) {
                             $id = $row['id'];
                             $date_order = $row['created_at'];
-                            $notes = $row['status'];
+                            $notes = $row['notes'];
                             $sql_address = "SELECT address FROM users WHERE id = " . $row['id'];
                             $address_result = mysqli_query($conn, $sql_address);
                             $address_row = mysqli_fetch_array($address_result);
                             $address = $address_row['address'];
-                            $sql_name = "SELECT username FROM users WHERE id = " . $row['id'];
+                            $sql_name = "SELECT fullname FROM users WHERE id = " . $row['id'];
                             $name_result = mysqli_query($conn, $sql_name);
                             $name_row = mysqli_fetch_array($name_result);
-                            $name = $name_row['username'];
+                            $name = $name_row['fullname'];
                             $sql_phone_number = "SELECT phone_number FROM users WHERE id = " . $row['id'];
                             $phone_number_result = mysqli_query($conn, $sql_phone_number);
                             $phone_number_row = mysqli_fetch_array($phone_number_result);
@@ -145,11 +145,11 @@ if (isset($_GET["page"])) {
                                 <td class="order-name"><?php echo $name ?></td>
                                 <td class="order-address"><?php echo $address ?></td>
                                 <td class="order-phone_number"><?php echo $phone_number ?></td>
-                                <td class="order-price"><?php echo $sumprice ?>$</td>
+                                <td class="order-price"><?php echo $sumprice ?>VND</td>
                                 <td class="order-status <?php echo $status ?>"><?php echo $status ?></td>
                                 <td class="order-notes"><?php echo $notes ?></td>
                                 <td>
-                                    <a <?php echo ($status === 'Cancelled' || $status === 'Complete') ?
+                                    <a <?php echo ($status === 'đã hủy' || $status === 'hoàn tất') ?
                                             "href='quanlyhoadon.php?page={$page}&iddeleteorder={$id}&formdeleteorder=1&status={$status}'" :
                                             "href='quanlyhoadon.php?page={$page}&formcantdeleteorder=1'" ?>
                                         class="fas fa-trash icon-delete js-delete-order">
@@ -157,7 +157,8 @@ if (isset($_GET["page"])) {
                                     <a href="#"
                                         class="fa-regular fa-eye icon-detail js-detail-order"
                                         data-order-id="<?php echo $id ?>"
-                                        data-status="<?php echo $status ?>">
+                                        data-status="<?php echo $status ?>"
+                                        onclick="showOrderDetail(<?php echo $id ?>, '<?php echo $status ?>')">
                                     </a>
                                 </td>
                             </tr>
@@ -178,369 +179,79 @@ if (isset($_GET["page"])) {
     </div>
     </div>
 
-    <?php
-    include "../config/connect.php";
-    if (isset($_GET['formdetailorder']) && $_GET['status'] === 'đang xử lý') {
-        $total = 0;
-        $order_id = intval($_GET['iddetailorder']);
-        // Get order info
-        $sql_order = "SELECT * FROM orders WHERE id = $order_id";
-        $order_result = mysqli_query($conn, $sql_order);
-        $order_row = mysqli_fetch_assoc($order_result);
-
-        // Get user info
-        $user_id = $order_row['id'];
-        $sql_user = "SELECT * FROM users WHERE id = $user_id";
-        $user_result = mysqli_query($conn, $sql_user);
-        $user_row = mysqli_fetch_assoc($user_result);
-
-        $date = $order_row['created_at'];
-        $name = $user_row['username'];
-        $address = $user_row['address'];
-        $phone_number = $user_row['phone_number'];
-        $notes = $order_row['status'];
-
-        echo '<div class="modal js-modal-dOrder-đang xử lý modal-order">
-            <form class="modal-container js-modal-dOrder-đang xử lý-container">
-                <div class="modal-close js-modal-dOrder-đang xử lý-close">
-                    <i class="fa-solid fa-xmark"></i>
-                </div>
-    
-                <header class="modal-header modal-header-books">
-                    <i class="modal-heading-icon fa-solid fa-book"></i>
-                    Order Detail
-                </header>
-    
-                <div class="modal-content">
-                    <div class="modal-col header-order">
-                        <label for="" class="modal-label-order">Date Order: </label>
-                        <p class="orderDetails-date">' . $date . '</p>
-                    </div>
-    
-                    <div class="modal-col header-order">
-                        <label for="" class="modal-label-order">Order ID: </label>
-                        <p class="orderDetails-id">' . $_GET["iddetailorder"] . '</p>
-                    </div>
-    
-                    <div class="modal-col content-order">
-                        <label for="" class="modal-label-order">Customer Name: </label>
-                        <p class="orderDetails-name">' . $name . '</p>
-                    </div>
-    
-                    <div class="modal-col content-order">
-                        <label for="" class="modal-label-order">Address: </label>
-                        <p class="orderDetails-address">' . $address . '</p>
-                    </div>
-    
-                    <div class="modal-col content-order">
-                        <label for="" class="modal-label-order">Phone_number: </label>
-                        <p class="orderDetails-phone_number">' . $phone_number . '</p>
-                    </div>
-
-                    <div class="modal-col content-order">
-                        <label for="" class="modal-label-order">Notes: </label>
-                        <p class="orderDetails-notes">' . $notes . '</p>
-                    </div>
-    
-                    <div class="modal-col">
-                        <div class="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Jewelry Name</th>
-                                        <th>Category</th>
-                                        <th>Quantity</th>
-                                        <th>Price</th>
-                                        <th>Subtotal</th>
-                                    </tr>
-                                </thead>
-                                <tbody>';
-
-        // Get order details
-        $sql = "SELECT order_details.*, jewelries.name as jewelry_name, jewelries.price, categories.name as category_name
-                FROM order_details
-                INNER JOIN jewelries ON order_details.jewelry_id = jewelries.id
-                INNER JOIN categories ON jewelries.category_id = categories.id
-                WHERE order_details.order_id = $order_id";
-        $result = mysqli_query($conn, $sql);
-        while ($row = mysqli_fetch_assoc($result)) {
-            $subTotal = intval($row["quantity"]) * $row["price"];
-            $total += $subTotal;
-            echo '<tr>
-                <td class="dOrder-bookName">' . htmlspecialchars($row["jewelry_name"]) . '</td>
-                <td class="dOrder-bookCategory">' . htmlspecialchars($row["category_name"]) . '</td>
-                <td class="dOrder-bookQuantity">' . $row["quantity"] . '</td>
-                <td class="dOrder-bookPrice">' . $row["price"] . '$</td>
-                <td class="dOrder-total">' . $subTotal . '$</td>
-            </tr>';
-        }
-
-        echo '              </tbody>
-                    </table>
-                </div>
+    <!-- Modal template cho Order Detail -->
+    <div class="modal js-modal-order-detail modal-order" style="display: none;">
+        <div class="modal-container js-modal-order-detail-container">
+            <div class="modal-close js-modal-order-detail-close">
+                <i class="fa-solid fa-xmark"></i>
             </div>
-    
-            <div class="modal-col content-order order-totals">
-                <label for="" class="modal-label-order">Totals: </label>
-                <p class="orderDetails-totals">' . $total . '$</p>
-            </div>
-            
-            <div class="action-form">
-                <a href="quanlyhoadon.php?page=' . $page . '&iddetailorder=' . $_GET["iddetailorder"] . '&confirmCancelled=1" class="cancel-book js-cancelled-order js-confirm-cancelled">Cancelled</a>
-                <a href="quanlyhoadon.php?page=' . $page . '&iddetailorder=' . $_GET["iddetailorder"] . '&confirmApprove=1" class="submit-book js-approve-order js-confirm-approve">Approve</a>
+
+            <header class="modal-header modal-header-books">
+                <i class="modal-heading-icon fa-solid fa-book"></i>
+                Order Detail
+            </header>
+
+            <div class="modal-content">
+                <div class="modal-col header-order">
+                    <label class="modal-label-order">Date Order: </label>
+                    <p class="orderDetails-date"></p>
+                </div>
+
+                <div class="modal-col header-order">
+                    <label class="modal-label-order">Order ID: </label>
+                    <p class="orderDetails-id"></p>
+                </div>
+
+                <div class="modal-col content-order">
+                    <label class="modal-label-order">Customer Name: </label>
+                    <p class="orderDetails-name"></p>
+                </div>
+
+                <div class="modal-col content-order">
+                    <label class="modal-label-order">Address: </label>
+                    <p class="orderDetails-address"></p>
+                </div>
+
+                <div class="modal-col content-order">
+                    <label class="modal-label-order">Phone Number: </label>
+                    <p class="orderDetails-phone_number"></p>
+                </div>
+
+                <div class="modal-col content-order">
+                    <label class="modal-label-order">Notes: </label>
+                    <p class="orderDetails-notes"></p>
+                </div>
+
+                <div class="modal-col">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Jewelry Name</th>
+                                    <th>Category</th>
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                    <th>Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody class="order-details-tbody">
+                                <!-- Dynamic content will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="modal-col content-order order-totals">
+                    <label class="modal-label-order">Totals: </label>
+                    <p class="orderDetails-totals"></p>
+                </div>
+
+                <div class="action-form">
+                    <!-- Action buttons will be added dynamically based on status -->
+                </div>
             </div>
         </div>
-    </form>
-</div>';
-    }
-    ?>
-
-    <?php
-    include "../config/connect.php";
-    if (isset($_GET['formdetailorder']) && $_GET['status'] === 'Delivering') {
-        $total = 0;
-        $sql_date = "SELECT created_at FROM order_books WHERE id = " . $_GET['iddetailorder'];
-        $date_result = mysqli_query($conn, $sql_date);
-        $date_row = mysqli_fetch_array($date_result);
-        $date = $date_row['created_at'];
-        $sql_name = "SELECT name_customer FROM customer, order_books WHERE customer.id_customer = order_books.id_customer AND order_books.id = " . $_GET['iddetailorder'];
-        $name_result = mysqli_query($conn, $sql_name);
-        $name_row = mysqli_fetch_array($name_result);
-        $name = $name_row['name_customer'];
-        $sql_address = "SELECT address FROM customer, order_books WHERE customer.id_customer = order_books.id_customer AND order_books.id = " . $_GET['iddetailorder'];
-        $address_result = mysqli_query($conn, $sql_address);
-        $address_row = mysqli_fetch_array($address_result);
-        $address = $address_row['address'];
-        $sql_phone_number = "SELECT phone_number FROM customer, order_books WHERE customer.id_customer = order_books.id_customer AND order_books.id = " . $_GET['iddetailorder'];
-        $phone_number_result = mysqli_query($conn, $sql_phone_number);
-        $phone_number_row = mysqli_fetch_array($phone_number_result);
-        $phone_number = $phone_number_row['phone_number'];
-        $sql_notes = "SELECT notes FROM order_books WHERE id = " . $_GET['iddetailorder'];
-        $notes_result = mysqli_query($conn, $sql_notes);
-        $notes_row = mysqli_fetch_array($notes_result);
-        $notes = $notes_row['status'];
-        echo '<div class="modal js-modal-dOrder-deliver modal-order">
-            <form class="modal-container js-modal-dOrder-deliver-container">
-                <div class="modal-close js-modal-dOrder-deliver-close">
-                    <i class="fa-solid fa-xmark"></i>
-                </div>
-
-                <header class="modal-header modal-header-books">
-                    <i class="modal-heading-icon fa-solid fa-book"></i>
-                    Order Detail
-                </header>
-    
-                <div class="modal-content">
-                    <div class="modal-col header-order">
-                        <label for="" class="modal-label-order">Date Order: </label>
-                        <p class="orderDetails-date">' . $date . '</p>
-                    </div>
-    
-                    <div class="modal-col header-order">
-                        <label for="" class="modal-label-order">Order ID: </label>
-                        <p class="orderDetails-id">' . $_GET["iddetailorder"] . '</p>
-                    </div>
-    
-                    <div class="modal-col content-order">
-                        <label for="" class="modal-label-order">Customer Name: </label>
-                        <p class="orderDetails-name">' . $name . '</p>
-                    </div>
-    
-                    <div class="modal-col content-order">
-                        <label for="" class="modal-label-order">Address: </label>
-                        <p class="orderDetails-address">' . $address . '</p>
-                    </div>
-    
-                    <div class="modal-col content-order">
-                        <label for="" class="modal-label-order">Phone_number: </label>
-                        <p class="orderDetails-phone_number">' . $phone_number . '</p>
-                    </div>
-
-                    <div class="modal-col content-order">
-                        <label for="" class="modal-label-order">Notes: </label>
-                        <p class="orderDetails-notes">' . $notes . '</p>
-                    </div>
-    
-                    <div class="modal-col">
-                        <div class="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Book Name</th>
-                                        <th>Category</th>
-                                        <th>Quantity</th>
-                                        <th>Price</th>
-                                        <th>Subtotal</th>
-                                    </tr>
-                                </thead>
-                                <tbody>';
-
-        $sql = "SELECT * FROM order_details WHERE id = " . $_GET["iddetailorder"];
-        $result = mysqli_query($conn, $sql);
-        while ($row = mysqli_fetch_array($result)) {
-            $sql2 = "SELECT name, price FROM book, order_books, order_details 
-                 WHERE book.id_book = " . $row['id_book'] . " 
-                 AND order_details.id = order_books.id 
-                 AND order_books.id = " . $row['id'];
-            $result_namebook = mysqli_query($conn, $sql2);
-            $row_namebook = mysqli_fetch_array($result_namebook);
-
-            $sql3 = "SELECT name_category FROM book, order_books, order_details, category 
-                 WHERE book.id_book = " . $row['id_book'] . " 
-                 AND order_details.id = order_books.id 
-                 AND order_books.id = " . $row['id'] . " AND book.id_category = category.id_category";
-            $result_namecategory = mysqli_query($conn, $sql3);
-            $row_namecategory = mysqli_fetch_array($result_namecategory);
-            $subTotal = intval($row["total_amount"]) * $row_namebook["price"];
-            $total += $subTotal;
-            echo '<tr>
-                <td class="dOrder-bookName">' . $row_namebook["name"] . '</td>
-                <td class="dOrder-bookCategory">' . $row_namecategory["name_category"] . '</td>
-                <td class="dOrder-bookQuantity">' . $row["total_amount"] . '</td>
-                <td class="dOrder-bookPrice">' . $row_namebook["price"] . '$</td>
-                <td class="dOrder-total">' . $subTotal . '$</td>
-            </tr>';
-        }
-
-        echo '              </tbody>
-                    </table>
-                </div>
-            </div>
-    
-            <div class="modal-col content-order order-totals">
-                <label for="" class="modal-label-order">Totals: </label>
-                <p class="orderDetails-totals">' . $total . '$</p>
-            </div>
-            <div class="action-form">
-                    <a href="quanlyhoadon.php?page=' . $page . '&iddetailorder=' . $_GET["iddetailorder"] . '&confirmComplete=1" class="submit-book js-complete-order js-confirm-complete">Complete</a>
-            </div>
-        </div>
-    </form>
-</div>';
-    }
-    ?>
-
-    <?php
-    include "../config/connect.php";
-    if (isset($_GET['formdetailorder']) && ($_GET['status'] === 'Complete' || $_GET['status'] === 'Cancelled')) {
-        $total = 0;
-        $sql_date = "SELECT created_at FROM order_books WHERE id = " . $_GET['iddetailorder'];
-        $date_result = mysqli_query($conn, $sql_date);
-        $date_row = mysqli_fetch_array($date_result);
-        $date = $date_row['created_at'];
-        $sql_name = "SELECT name_customer FROM customer, order_books WHERE customer.id_customer = order_books.id_customer AND order_books.id = " . $_GET['iddetailorder'];
-        $name_result = mysqli_query($conn, $sql_name);
-        $name_row = mysqli_fetch_array($name_result);
-        $name = $name_row['name_customer'];
-        $sql_address = "SELECT address FROM customer, order_books WHERE customer.id_customer = order_books.id_customer AND order_books.id = " . $_GET['iddetailorder'];
-        $address_result = mysqli_query($conn, $sql_address);
-        $address_row = mysqli_fetch_array($address_result);
-        $address = $address_row['address'];
-        $sql_phone_number = "SELECT phone_number FROM customer, order_books WHERE customer.id_customer = order_books.id_customer AND order_books.id = " . $_GET['iddetailorder'];
-        $phone_number_result = mysqli_query($conn, $sql_phone_number);
-        $phone_number_row = mysqli_fetch_array($phone_number_result);
-        $phone_number = $phone_number_row['phone_number'];
-        $sql_notes = "SELECT notes FROM order_books WHERE id = " . $_GET['iddetailorder'];
-        $notes_result = mysqli_query($conn, $sql_notes);
-        $notes_row = mysqli_fetch_array($notes_result);
-        $notes = $notes_row['status'];
-        echo '<div class="modal js-modal-dOrder-complete modal-order">
-            <div class="modal-container js-modal-dOrder-complete-container">
-                <div class="modal-close js-modal-dOrder-complete-close">
-                    <i class="fa-solid fa-xmark"></i>
-                </div>
-
-                <header class="modal-header modal-header-books">
-                    <i class="modal-heading-icon fa-solid fa-book"></i>
-                    Order Detail
-                </header>
-    
-                <div class="modal-content">
-                    <div class="modal-col header-order">
-                        <label for="" class="modal-label-order">Date Order: </label>
-                        <p class="orderDetails-date">' . $date . '</p>
-                    </div>
-    
-                    <div class="modal-col header-order">
-                        <label for="" class="modal-label-order">Order ID: </label>
-                        <p class="orderDetails-id">' . $_GET["iddetailorder"] . '</p>
-                    </div>
-    
-                    <div class="modal-col content-order">
-                        <label for="" class="modal-label-order">Customer Name: </label>
-                        <p class="orderDetails-name">' . $name . '</p>
-                    </div>
-    
-                    <div class="modal-col content-order">
-                        <label for="" class="modal-label-order">Address: </label>
-                        <p class="orderDetails-address">' . $address . '</p>
-                    </div>
-    
-                    <div class="modal-col content-order">
-                        <label for="" class="modal-label-order">Phone_number: </label>
-                        <p class="orderDetails-phone_number">' . $phone_number . '</p>
-                    </div>
-
-                    <div class="modal-col content-order">
-                        <label for="" class="modal-label-order">Notes: </label>
-                        <p class="orderDetails-notes">' . $notes . '</p>
-                    </div>
-    
-                    <div class="modal-col">
-                        <div class="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Book Name</th>
-                                        <th>Category</th>
-                                        <th>Quantity</th>
-                                        <th>Price</th>
-                                        <th>Subtotal</th>
-                                    </tr>
-                                </thead>
-                                <tbody>';
-
-        $sql = "SELECT * FROM order_details WHERE id = " . $_GET["iddetailorder"];
-        $result = mysqli_query($conn, $sql);
-        while ($row = mysqli_fetch_array($result)) {
-            $sql2 = "SELECT name, price FROM book, order_books, order_details 
-                 WHERE book.id_book = " . $row['id_book'] . " 
-                 AND order_details.id = order_books.id 
-                 AND order_books.id = " . $row['id'];
-            $result_namebook = mysqli_query($conn, $sql2);
-            $row_namebook = mysqli_fetch_array($result_namebook);
-
-            $sql3 = "SELECT name_category FROM book, order_books, order_details, category 
-                 WHERE book.id_book = " . $row['id_book'] . " 
-                 AND order_details.id = order_books.id 
-                 AND order_books.id = " . $row['id'] . " AND book.id_category = category.id_category";
-            $result_namecategory = mysqli_query($conn, $sql3);
-            $row_namecategory = mysqli_fetch_array($result_namecategory);
-            $subTotal = intval($row["total_amount"]) * $row_namebook["price"];
-            $total += $subTotal;
-            echo '<tr>
-                <td class="dOrder-bookName">' . $row_namebook["name"] . '</td>
-                <td class="dOrder-bookCategory">' . $row_namecategory["name_category"] . '</td>
-                <td class="dOrder-bookQuantity">' . $row["total_amount"] . '</td>
-                <td class="dOrder-bookPrice">' . $row_namebook["price"] . '$</td>
-                <td class="dOrder-total">' . $subTotal . '$</td>
-            </tr>';
-        }
-
-        echo '              </tbody>
-                    </table>
-                </div>
-            </div>
-    
-            <div class="modal-col content-order order-totals">
-                <label for="" class="modal-label-order">Totals: </label>
-                <p class="orderDetails-totals">' . $total . '$</p>
-            </div>
-        </div>
-    </form>
-</div>';
-    }
-    ?>
+    </div>
 
     <?php
     include "../config/connect.php";
@@ -735,6 +446,95 @@ if (isset($_GET["page"])) {
                 duration: 5000
             });
         }
+
+        // Function to show order detail modal
+        function showOrderDetail(orderId, status) {
+            // Show modal
+            const modal = document.querySelector('.js-modal-order-detail');
+            modal.style.display = 'flex';
+
+            // Load order details via AJAX
+            loadOrderDetails(orderId, status);
+        }
+
+        // Function to load order details
+        function loadOrderDetails(orderId, status) {
+            fetch(`get_order_details.php?id=${orderId}&status=${status}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Update modal content
+                    document.querySelector('.orderDetails-date').textContent = data.date;
+                    document.querySelector('.orderDetails-id').textContent = data.id;
+                    document.querySelector('.orderDetails-name').textContent = data.name;
+                    document.querySelector('.orderDetails-address').textContent = data.address;
+                    document.querySelector('.orderDetails-phone_number').textContent = data.phone_number;
+                    document.querySelector('.orderDetails-notes').textContent = data.notes;
+                    document.querySelector('.orderDetails-totals').textContent = data.total + '$';
+
+                    // Update order items table
+                    const tbody = document.querySelector('.order-details-tbody');
+                    tbody.innerHTML = '';
+                    data.items.forEach(item => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${item.jewelry_name}</td>
+                                <td>${item.category_name}</td>
+                                <td>${item.quantity}</td>
+                                <td>${item.price}$</td>
+                                <td>${item.subtotal}$</td>
+                            </tr>
+                        `;
+                    });
+
+                    // Update action buttons based on status
+                    updateActionButtons(orderId, status);
+                })
+                .catch(error => {
+                    console.error('Error loading order details:', error);
+                });
+        }
+
+        // Function to update action buttons
+        function updateActionButtons(orderId, status) {
+            const actionForm = document.querySelector('.action-form');
+
+            if (status === 'chờ xác nhận') {
+                actionForm.innerHTML = `
+                    <a href="quanlyhoadon.php?page=<?php echo $page ?>&iddetailorder=${orderId}&confirmCancelled=1" 
+                       class="cancel-book js-cancelled-order">Cancelled</a>
+                    <a href="quanlyhoadon.php?page=<?php echo $page ?>&iddetailorder=${orderId}&confirmApprove=1" 
+                       class="submit-book js-approve-order">Approve</a>
+                `;
+            } else if (status === 'đã giao hàng') {
+                actionForm.innerHTML = `
+                    <a href="quanlyhoadon.php?page=<?php echo $page ?>&iddetailorder=${orderId}&confirmComplete=1" 
+                       class="submit-book js-complete-order">Complete</a>
+                `;
+            } else {
+                actionForm.innerHTML = ''; // No actions for completed/cancelled orders
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Close modal when clicking X
+            const closeBtn = document.querySelector('.js-modal-order-detail-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    document.querySelector('.js-modal-order-detail').style.display = 'none';
+                });
+            }
+
+            // Close modal when clicking outside
+            const modal = document.querySelector('.js-modal-order-detail');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.style.display = 'none';
+                    }
+                });
+            }
+        });
     </script>
     <script src="./js/script-form-hoadon.js"></script>
     <script src="./js/script-message-order.js"></script>
