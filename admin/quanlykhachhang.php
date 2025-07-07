@@ -1,6 +1,6 @@
 <?php
 include "../config/connect.php";
-$sql = "SELECT * FROM users";
+$sql = "SELECT * FROM users WHERE is_deleted = 0";
 $result = mysqli_query($conn, $sql);
 $pageRow = $result->num_rows;
 $numPage = ceil($pageRow / 5);
@@ -20,6 +20,8 @@ if (isset($_GET["page"])) {
     <link rel="stylesheet" href="../css/styleadmin.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="data:;base64,iVBORw0KGgo=">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 
 <body>
@@ -109,7 +111,7 @@ if (isset($_GET["page"])) {
                             $searchTerm = preg_replace('/\s+/', ' ', $searchTerm);
                             $result = searchBooks($searchTerm, $page);
                         } else {
-                            $sql = "SELECT * FROM users LIMIT " . $currentData . ", 5";
+                            $sql = "SELECT * FROM users WHERE is_deleted = 0 LIMIT " . $currentData . ", 5";
                             $result = mysqli_query($conn, $sql);
                         }
                         while ($row = mysqli_fetch_array($result)) {
@@ -122,11 +124,37 @@ if (isset($_GET["page"])) {
                                 <td class="customer-phone"><?php echo $row['phone_number'] ?></td>
                                 <td class="customer-email"><?php echo $row['email'] ?></td>
                                 <td>
-                                    <a href="quanlykhachhang.php?page=<?php echo $page . "&idchangecustomer=" . $row['id'] . "&formchangecustomer=1" ?>" class="fa-solid fa-pen icon-change js-changeCustomer"></a>
-                                    <a href="quanlykhachhang.php?page=<?php echo $page . "&iddelcustomer=" . $row['id'] . "&formdelcustomer=1" ?>" class="fas fa-trash icon-delete js-delete-customer"></a>
+                                    <a href="#"
+                                        class="fa-solid fa-pen icon-change edit-customer-btn"
+                                        data-customer-id="<?php echo $row['id'] ?>">
+                                    </a>
+                                    <a href="#"
+                                        class="fas fa-trash icon-delete delete-customer-btn"
+                                        data-customer-id="<?php echo $row['id'] ?>">
+                                    </a>
                                 </td>
                             </tr>
                         <?php } ?>
+
+                        <?php
+                        function searchBooks($searchTerm, $page)
+                        {
+                            include "../config/connect.php";
+                            $currentData = ($page - 1) * 5;
+                            $stmt = $conn->prepare("SELECT * FROM users WHERE username LIKE ? AND is_deleted = 0 LIMIT ?, 5");
+
+                            // Thêm dấu % cho tìm kiếm với LIKE
+                            $searchTerm = "%" . $searchTerm . "%";
+
+                            // Gán giá trị và thực thi truy vấn
+                            $stmt->bind_param("si", $searchTerm, $currentData);
+                            $stmt->execute();
+                            $result = $stmt->get_result();
+                            $stmt->close();
+
+                            return $result;
+                        }
+                        ?>
                     </tbody>
                 </table>
                 <div class="pagination">
@@ -141,201 +169,213 @@ if (isset($_GET["page"])) {
             </div>
         </div>
 
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                var searchInput = document.getElementById('searchInput');
-                var searchButton = document.getElementById('searchButton');
-                searchButton.addEventListener('click', function() {
-                    var searchTerm = searchInput.value;
-                    window.location.href = 'quanlykhachhang.php?search=' + encodeURIComponent(searchTerm);
-                });
-            });
-        </script>
-
-        <?php
-        function searchBooks($searchTerm, $page)
-        {
-            include "../config/connect.php";
-            $currentData = ($page - 1) * 5;
-            $stmt = $conn->prepare("SELECT * FROM users WHERE username LIKE ? LIMIT ?, 5");
-
-            // Thêm dấu % cho tìm kiếm với LIKE
-            $searchTerm = "%" . $searchTerm . "%";
-
-            // Gán giá trị và thực thi truy vấn
-            $stmt->bind_param("si", $searchTerm, $currentData);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $stmt->close();
-
-            return $result;
-        }
-        ?>
-
-        <?php
-        include "../config/connect.php";
-        if (isset($_GET['idchangecustomer'])) {
-            $idchange = $_GET['idchangecustomer'];
-            $sql4 = "SELECT * FROM users WHERE id = " . $idchange;
-            $query = mysqli_query($conn, $sql4);
-            if ($query) {
-                $row = mysqli_fetch_array($query);
-            }
-        }
-        ?>
-
-        <?php
-        include "../config/connect.php";
-        if (isset($_GET['formchangecustomer'])) {
-            echo '<div class="modal js-modal-customer modal-change-customer">
-            <form action="quanlykhachhang.php?page=' . $page . '&idchangecustomer=' . (isset($_GET["idchangecustomer"]) ? $_GET["idchangecustomer"] : "") . '" method="post" class="modal-container js-modalCustomer-container modal-container-customer" enctype="multipart/form-data">
+        <!-- Edit Customer Modal -->
+        <div id="editCustomerModal" class="modal js-modal-customer modal-change-customer" style="display: none;">
+            <div class="modal-container js-modalCustomer-container modal-container-customer">
                 <div class="modal-close js-modalCustomer-close">
                     <i class="fa-solid fa-xmark"></i>
                 </div>
-    
+
                 <header class="modal-header">
                     <i class="modal-heading-icon fa-solid fa-user"></i>
-                    Change Customer Information
+                    Edit Customer Information
                 </header>
-    
+
                 <div class="modal-content">
-                    <div class="modal-twoCol">
-                        <label for="customer-name" class="modal-label" style="display: none;">
-                            ID
-                            <input value="' . $row["id"] . '" name="changeCustomer-id" id="customer-id" type="text" class="js-customer-id modal-input modal-input-customer" placeholder="ID..." required>
-                        </label>
-                        <label for="customer-name" class="modal-label">
-                            Name
-                            <input value="' . $row["username"] . '" name="changeCustomer-name" id="customer-name" type="text" class="js-customer-name modal-input modal-input-customer" placeholder="Name..." required>
-                            <span class="name-changeCustomer-error check-error"></span>
-                        </label>
-    
-                        <label for="customer-birthday" class="modal-label">
-                            Date of birth
-                            <input value="' . $row["date_of_birth"] . '" name="changeCustomer-birthday" id="customer-birthday" type="date" class="js-customer-birthday modal-input modal-input-customer" required>
-                            <span class="birthday-changeCustomer-error check-error"></span>
-                        </label>
-        
-                        <label for="customer-email" class="modal-label">
-                            Email
-                            <input value="' . $row["email"] . '" name="changeCustomer-email" id="customer-email" type="email" class="js-customer-email modal-input modal-input-customer" placeholder="Email..." required>
-                            <span class="email-changeCustomer-error check-error"></span>
-                        </label>
-        
-                        <label for="customer-phone" class="modal-label">
-                            Phone
-                            <input value="' . $row["phone"] . '" name="changeCustomer-phone" id="customer-phone" type="text" class="js-customer-phone modal-input modal-input-customer" placeholder="Phone..." required>
-                            <span class="phone-changeCustomer-error check-error"></span>
-                        </label>
-                    </div>
-                    <div class="modal-col">
-                        <label for="customer-address" class="modal-label">
-                            Address
-                            <input value="' . $row["address"] . '" name="changeCustomer-address" id="customer-address" type="text" class="js-customer-address modal-input modal-input-customer" placeholder="Address..." required>
-                            <span class="address-changeCustomer-error check-error"></span>
-                        </label>
-                    </div>
-                    <div class="action-form">
-                        <div class="cancel-book js-cancel-customer">
-                            Cancel
+                    <form id="editCustomerForm">
+                        <input type="hidden" id="editCustomerId" name="id">
+
+                        <div class="modal-twoCol">
+                            <label for="editCustomerName" class="modal-label">
+                                Name
+                                <input name="username" id="editCustomerName" type="text" class="modal-input modal-input-customer" placeholder="Name..." required>
+                                <span class="name-changeCustomer-error check-error"></span>
+                            </label>
+
+                            <label for="editCustomerBirthday" class="modal-label">
+                                Date of birth
+                                <input name="date_of_birth" id="editCustomerBirthday" type="date" class="modal-input modal-input-customer" required>
+                                <span class="birthday-changeCustomer-error check-error"></span>
+                            </label>
+
+                            <label for="editCustomerEmail" class="modal-label">
+                                Email
+                                <input name="email" id="editCustomerEmail" type="email" class="modal-input modal-input-customer" placeholder="Email..." required>
+                                <span class="email-changeCustomer-error check-error"></span>
+                            </label>
+
+                            <label for="editCustomerPhone" class="modal-label">
+                                Phone
+                                <input name="phone_number" id="editCustomerPhone" type="text" class="modal-input modal-input-customer" placeholder="Phone..." required>
+                                <span class="phone-changeCustomer-error check-error"></span>
+                            </label>
                         </div>
-                        <button name="changeCustomer" class="submit-book js-change-customer" type="submit" onclick="checkChangeCustomer()">
-                            Save
-                        </button>
+
+                        <div class="modal-col">
+                            <label for="editCustomerAddress" class="modal-label">
+                                Address
+                                <input name="address" id="editCustomerAddress" type="text" class="modal-input modal-input-customer" placeholder="Address..." required>
+                                <span class="address-changeCustomer-error check-error"></span>
+                            </label>
+                        </div>
+
+                        <div class="action-form">
+                            <div class="cancel-book js-cancel-customer">
+                                Cancel
+                            </div>
+                            <button type="submit" class="submit-book js-change-customer">
+                                Save
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Customer Modal -->
+        <div id="deleteCustomerModal" class="modal-delete js-modal-deleteCustomer" style="display: none;">
+            <div class="modal-delete-container js-modal-deleteCustomer-container">
+                <div class="modal-delete-close js-modal-deleteCustomer-close">
+                    <i class="fa-solid fa-xmark"></i>
+                </div>
+                <div class="modal-delete-body">
+                    <p>Do you want to delete this customer?</p>
+                    <div class="btn-delete-choose">
+                        <button type="button" id="confirmDeleteCustomer" class="btn-yes js-customer-btn-yes">Yes</button>
+                        <div class="btn-no js-customer-btn-no">No</div>
                     </div>
                 </div>
-            </form>
-        </div>';
-        }
-        ?>
-
-        <?php
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (isset($_POST["changeCustomer"])) {
-                $idCustomer = $_POST["changeCustomer-id"];
-                $nameCustomer = $_POST["changeCustomer-name"];
-                $birthdayCustomer = $_POST["changeCustomer-birthday"];
-                $emailCustomer = $_POST["changeCustomer-email"];
-                $phoneCustomer = $_POST["changeCustomer-phone"];
-                $addressCustomer = $_POST["changeCustomer-address"];
-                $isDuplicate = false;
-                $sql2 = "SELECT * FROM users";
-                $names = mysqli_query($conn, $sql2);
-                while ($customer = mysqli_fetch_array($names)) {
-                    if ($customer["email"] == $emailCustomer && $customer["id"] != $idCustomer) {
-                        echo '<div id="toast-changeNameCustomer-error" class="toast-message"></div>';
-                        $isDuplicate = true;
-                        break;
-                    }
-                }
-                if (!$isDuplicate) {
-                    if ($_GET["idchangecustomer"]) {
-                        $sql1 = "UPDATE users SET username = '$nameCustomer', date_of_birth = '$birthdayCustomer', address = '$addressCustomer', 
-                        phone = '$phoneCustomer', email = '$emailCustomer' WHERE id = " . $_GET["idchangecustomer"];
-                        if (mysqli_query($conn, $sql1)) {
-                            echo '<div id="toast-changeCustomer-success" class="toast-message"></div>';
-                            echo "<script>setTimeout(function(){
-                                window.location = 'quanlykhachhang.php?page=" . $_GET['page'] . "';
-                            }, 2000)</script>";
-                        } else {
-                            echo '<div id="toast-changeCustomer-error" class="toast-message"></div>';
-                        }
-                    }
-                }
-            }
-        }
-        ?>
-
-        <?php
-        include "../config/connect.php";
-        if (isset($_GET['formdelcustomer'])) {
-            echo '<div class="modal-delete js-modal-deleteCustomer">
-        <form class="modal-delete-container js-modal-deleteCustomer-container" method="post" action="quanlykhachhang.php?page=' . $page . '&iddelcustomer=' . (isset($_GET["iddelcustomer"]) ? $_GET["iddelcustomer"] : "") . '" enctype="multipart/form-data">
-            <div class="modal-delete-close js-modal-deleteCustomer-close">
-                <i class="fa-solid fa-xmark"></i>
             </div>
-            <div class="modal-delete-body">
-                <p>Do you want to delete customer?</p>
-                <div class="btn-delete-choose">
-                    <button type="submit" name="deleteCustomer" class="btn-yes js-customer-btn-yes">Yes</button>
-                    <div class="btn-no js-customer-btn-no">No</div>
-                </div>
-            </div>
-        </form>
-    </div>';
-        }
-        ?>
+        </div>
 
-        <?php
-        include "../config/connect.php";
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (isset($_POST["deleteCustomer"])) {
-                $sql2 = "DELETE FROM users WHERE id = " . $_GET['iddelcustomer'];
-                if (mysqli_query($conn, $sql2)) {
-                    echo '<div id="toast-deleteCustomer-success" class="toast-message"></div>';
-                    echo "<script>setTimeout(function(){
-                    window.location = 'quanlykhachhang.php?page=" . $_GET['page'] . "';
-                }, 2000)</script>";
-                } else {
-                    echo '<div id="toast-deleteCustomer-error" class="toast-message"></div>';
-                }
-            }
-        }
-        ?>
+        <!-- Toast Messages -->
+        <div id="toast-customer-success" class="toast-message" style="display: none;"></div>
+        <div id="toast-customer-error" class="toast-message" style="display: none;"></div>
 
-        <script src="./js/script-form-qlkh.js"></script>
-        <script src="./js/script-message-customer.js"></script>
-        <script src="./js/script-check-changeCustomer.js"></script>
         <script>
-            function toastCustomer() {
-                toastChangeCustomerSuccess();
-                toastChangeCustomerError();
-                toastDeleteCustomerSuccess();
-                toastDeleteCustomerError();
-                toastNameCustomerError();
-            }
-            toastCustomer();
+            $(document).ready(function() {
+                let currentCustomerId = null;
+
+                // Search functionality
+                $('#searchInput').on('keypress', function(e) {
+                    if (e.which === 13) {
+                        performSearch();
+                    }
+                });
+
+                $('#searchButton').on('click', function() {
+                    performSearch();
+                });
+
+                function performSearch() {
+                    var searchTerm = $('#searchInput').val();
+                    window.location.href = 'quanlykhachhang.php?search=' + encodeURIComponent(searchTerm);
+                }
+
+                // Edit customer
+                $('.edit-customer-btn').on('click', function(e) {
+                    e.preventDefault();
+                    currentCustomerId = $(this).data('customer-id');
+                    loadCustomerData(currentCustomerId);
+                });
+
+                function loadCustomerData(customerId) {
+                    $.post('customer_operations.php', {
+                        action: 'get',
+                        id: customerId
+                    }, function(response) {
+                        if (response.success) {
+                            const customer = response.data;
+                            $('#editCustomerId').val(customer.id);
+                            $('#editCustomerName').val(customer.username);
+                            $('#editCustomerBirthday').val(customer.date_of_birth);
+                            $('#editCustomerEmail').val(customer.email);
+                            $('#editCustomerPhone').val(customer.phone_number);
+                            $('#editCustomerAddress').val(customer.address);
+                            $('#editCustomerModal').show();
+                        } else {
+                            showToast(response.message, 'error');
+                        }
+                    }, 'json');
+                }
+
+                // Submit edit form
+                $('#editCustomerForm').on('submit', function(e) {
+                    e.preventDefault();
+
+                    const formData = {
+                        action: 'update',
+                        id: $('#editCustomerId').val(),
+                        username: $('#editCustomerName').val(),
+                        date_of_birth: $('#editCustomerBirthday').val(),
+                        email: $('#editCustomerEmail').val(),
+                        phone_number: $('#editCustomerPhone').val(),
+                        address: $('#editCustomerAddress').val()
+                    };
+
+                    $.post('customer_operations.php', formData, function(response) {
+                        if (response.success) {
+                            showToast(response.message, 'success');
+                            $('#editCustomerModal').hide();
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            showToast(response.message, 'error');
+                        }
+                    }, 'json');
+                });
+
+                // Delete customer
+                $('.delete-customer-btn').on('click', function(e) {
+                    e.preventDefault();
+                    currentCustomerId = $(this).data('customer-id');
+                    $('#deleteCustomerModal').show();
+                });
+
+                $('#confirmDeleteCustomer').on('click', function() {
+                    $.post('customer_operations.php', {
+                        action: 'delete',
+                        id: currentCustomerId
+                    }, function(response) {
+                        if (response.success) {
+                            showToast(response.message, 'success');
+                            $('#deleteCustomerModal').hide();
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            showToast(response.message, 'error');
+                        }
+                    }, 'json');
+                });
+
+                // Close modals
+                $('.js-modalCustomer-close, .js-cancel-customer').on('click', function() {
+                    $('#editCustomerModal').hide();
+                });
+
+                $('.js-modal-deleteCustomer-close, .js-customer-btn-no').on('click', function() {
+                    $('#deleteCustomerModal').hide();
+                });
+
+                // Close modal when clicking outside
+                $('.modal, .modal-delete').on('click', function(e) {
+                    if (e.target === this) {
+                        $(this).hide();
+                    }
+                });
+
+                function showToast(message, type) {
+                    const toastId = type === 'success' ? '#toast-customer-success' : '#toast-customer-error';
+                    $(toastId).text(message).show();
+                    setTimeout(() => {
+                        $(toastId).hide();
+                    }, 3000);
+                }
+            });
         </script>
+
 </body>
 
 </html>
